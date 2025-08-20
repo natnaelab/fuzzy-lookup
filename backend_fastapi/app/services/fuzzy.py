@@ -1,0 +1,243 @@
+import pandas as pd
+from string_grouper import group_similar_strings, match_strings
+import Levenshtein
+import time
+from pathlib import Path
+from typing import Dict
+from datetime import datetime
+from pydantic import BaseModel
+from ..models import User, UserFile, FuzzyJob
+from .file import FileService
+
+
+class FuzzyLookupRequest(BaseModel):
+    file_name_1: str
+    file_name_2: str
+    file_1_column: str
+    file_2_column: str
+    threshold: float
+    delimiter: str = ","
+    output_type: str = "csv"
+    join_method: str = "inner"
+
+
+class SingleFileFuzzyRequest(BaseModel):
+    filename: str
+    column_1: str
+    column_2: str
+    threshold: float
+
+
+class ColumnNamesResponse(BaseModel):
+    filename: str
+    column_names: Dict[str, str]
+
+
+class OutputDataframe:
+    def __init__(self, input_file: str):
+        extension = Path(input_file).suffix.lower()
+        if extension in [".csv", ".xlsx", ".xls"]:
+            self.input_file = input_file
+            self.extension = extension
+        else:
+            raise ValueError("Incorrect File Type. Supported types: csv, xlsx, xls")
+
+    def convert_to_dataframe(self) -> pd.DataFrame:
+        if self.extension == ".csv":
+            for encoding in ["utf-8", "latin-1", "cp1252"]:
+                try:
+                    for sep in [",", ";", "\t"]:
+                        try:
+                            df = pd.read_csv(self.input_file, encoding=encoding, sep=sep)
+                            if len(df.columns) > 1:
+                                return df
+                        except:
+                            continue
+                    return pd.read_csv(self.input_file, encoding=encoding)
+                except:
+                    continue
+            raise ValueError("Could not read CSV file with any encoding")
+        elif self.extension == ".xlsx":
+            return pd.read_excel(self.input_file, engine="openpyxl")
+        elif self.extension == ".xls":
+            return pd.read_excel(self.input_file)
+
+
+class FileProcessingHandler:
+    def __init__(self, df: pd.DataFrame, threshold: float, processes: int = -1):
+        self.df = df
+        self.threshold = threshold
+        self.processes = processes
+
+    def pre_process_dataframe(self, column_1: str, column_2: str) -> pd.DataFrame:
+        if column_1 not in self.df.columns or column_2 not in self.df.columns:
+            raise ValueError(f"Columns {column_1} or {column_2} not found in dataframe")
+
+        df_processed = self.df.copy()
+        df_processed = df_processed.dropna(subset=[column_1, column_2])
+        df_processed[column_1] = df_processed[column_1].astype(str).str.strip()
+        df_processed[column_2] = df_processed[column_2].astype(str).str.strip()
+
+        matches = match_strings(
+            df_processed[column_1], df_processed[column_2], ignore_index=True, min_similarity=self.threshold
+        )
+
+        return pd.merge(matches, df_processed, left_on=f"left_{column_1}", right_on=column_1, how="inner")
+
+    def group_similar_strings_in_dataframe(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
+        grouped_df = group_similar_strings(df[column_name], min_similarity=self.threshold)
+        df = df.merge(grouped_df, how="left", left_on=column_name, right_on="string")
+        return df.reset_index(drop=True)
+
+    def calculate_similarity_metrics(self, dfs_combined: pd.DataFrame, column_name: str) -> pd.DataFrame:
+        try:
+            dfs_combined["Distance"] = dfs_combined.apply(
+                lambda x: Levenshtein.distance(x[column_name], x["group rep"]), axis=1
+            )
+            dfs_combined["Similarity"] = dfs_combined.apply(
+                lambda x: Levenshtein.ratio(x[column_name], x["group rep"]), axis=1
+            )
+
+            dfs_combined = dfs_combined[dfs_combined["Distance"] < 5]
+
+            data_framerawgrouped1 = (
+                dfs_combined.groupby(["group rep ID", "group rep"]).size().reset_index(name="counts")
+            )
+            data_framerawgrouped1 = data_framerawgrouped1[data_framerawgrouped1["counts"] > 1].reset_index(drop=True)
+            data_framerawgrouped1 = data_framerawgrouped1.sort_values(by="group rep", ascending=True)
+            data_framerawgrouped1["rank"] = data_framerawgrouped1.index + 1
+
+            data_finalgroup = pd.merge(dfs_combined, data_framerawgrouped1, how="inner", on="group rep ID")
+            data_finalgroup = data_finalgroup.sort_values(by="rank", ascending=True)
+            data_finalgroup.insert(0, "rank", data_finalgroup.pop("rank"))
+            data_finalgroup.drop(["group rep_y"], axis=1, inplace=True)
+
+            return data_finalgroup
+        except Exception as e:
+            raise
+
+
+class FuzzyLookupHelper:
+    @staticmethod
+    def fuzzy_lookup_preprocess(file_path: str, column_name: str) -> pd.DataFrame:
+        try:
+            output_df = OutputDataframe(file_path)
+            df = output_df.convert_to_dataframe()
+
+            df = df.dropna(subset=[column_name])
+            df = df.astype(str)
+
+            return df
+        except Exception as e:
+            raise
+
+    @staticmethod
+    def fuzzylookup_main(
+        df1_processed: pd.DataFrame, df2_processed: pd.DataFrame, df1_col: str, df2_col: str, threshold: float
+    ) -> pd.DataFrame:
+        try:
+            matches = match_strings(
+                df1_processed[df1_col], df2_processed[df2_col], ignore_index=True, min_similarity=threshold
+            )
+            return matches
+        except Exception as e:
+            raise
+
+    @staticmethod
+    def fuzzylookup_postprocess(
+        matches: pd.DataFrame,
+        df1_processed: pd.DataFrame,
+        df2_processed: pd.DataFrame,
+        df1_col: str,
+        df2_col: str,
+        join_method: str = "inner",
+    ) -> pd.DataFrame:
+        try:
+            data_final = pd.merge(matches, df1_processed, how=join_method, left_on=f"left_{df1_col}", right_on=df1_col)
+
+            data_final = data_final[data_final.columns.drop(list(data_final.filter(regex="key")))]
+
+            data_final2 = pd.merge(
+                data_final, df2_processed, how=join_method, left_on=f"right_{df2_col}", right_on=df2_col
+            )
+
+            data_final2 = data_final2[data_final2.columns.drop(list(data_final2.filter(regex="left_")))]
+            data_final2 = data_final2[data_final2.columns.drop(list(data_final2.filter(regex="right_")))]
+            data_final2 = data_final2[data_final2.columns.drop(list(data_final2.filter(regex="key_0")))]
+
+            cols = [col for col in data_final2.columns if col != "similarity"] + ["similarity"]
+            data_final2 = data_final2[cols]
+
+            return data_final2
+        except Exception as e:
+            raise
+
+
+class FuzzyService:
+    def __init__(self, file_service: FileService = None):
+        self.file_service = file_service or FileService()
+        self.download_dir = Path("data/downloads")
+        self.download_dir.mkdir(exist_ok=True)
+
+    def get_column_names(self, file_path: str) -> Dict[str, str]:
+        output_df = OutputDataframe(file_path)
+        df = output_df.convert_to_dataframe()
+        return {column_name: column_name for column_name in df.columns}
+
+    def process_single_file_fuzzy_lookup(self, request: SingleFileFuzzyRequest, user: User, db) -> str:
+        try:
+            user_file = (
+                db.query(UserFile)
+                .filter(UserFile.user_id == user.id, UserFile.stored_filename == request.filename)
+                .first()
+            )
+
+            if not user_file:
+                raise FileNotFoundError("File not found")
+
+            job = FuzzyJob(
+                user_id=user.id,
+                file_id=user_file.id,
+                job_type="single_file",
+                status="processing",
+                file_1_column=request.column_1,
+                file_2_column=request.column_2,
+                threshold=request.threshold,
+                started_at=datetime.utcnow(),
+            )
+            db.add(job)
+            db.flush()
+
+            output_df = OutputDataframe(user_file.file_path)
+            df = output_df.convert_to_dataframe()
+
+            file_processor = FileProcessingHandler(df, request.threshold)
+            processed_df = file_processor.pre_process_dataframe(request.column_1, request.column_2)
+
+            filename_parts = user_file.original_filename.rsplit(".", 1)
+            if len(filename_parts) == 2:
+                name, ext = filename_parts
+                output_filename = f"processed_{name}_{time.strftime('%Y%m%d_%H%M%S')}.{ext}"
+            else:
+                output_filename = f"processed_{user_file.original_filename}_{time.strftime('%Y%m%d_%H%M%S')}"
+            
+            output_path = self.download_dir / output_filename
+
+            processed_df.to_csv(output_path, index=False)
+
+            job.status = "completed"
+            job.output_filename = output_filename
+            job.output_path = str(output_path)
+            job.matches_count = len(processed_df)
+            job.completed_at = datetime.utcnow()
+
+            db.commit()
+
+            return str(output_path)
+
+        except Exception as e:
+            job.status = "failed"
+            job.error_message = str(e)
+            job.completed_at = datetime.utcnow()
+            db.commit()
+            raise
