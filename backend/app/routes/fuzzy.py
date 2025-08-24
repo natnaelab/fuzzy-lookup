@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, FuzzyJob
-from app.services.fuzzy import FuzzyService, SingleFileFuzzyRequest, ColumnNamesResponse, OutputDataframe
+from app.services.fuzzy import FuzzyService, SingleFileFuzzyRequest, FuzzyLookupRequest, ColumnNamesResponse, OutputDataframe
 from app.services.license import LicenseService
 from app.services.file import FileService
 from app.dependencies import get_current_user, get_fuzzy_service, get_license_service, get_file_service
@@ -51,6 +51,31 @@ async def lookup_single_file(
         media_type='text/csv',
         filename=os.path.basename(output_path)
     )
+
+
+@router.post("/lookup_multi_file")
+async def lookup_multi_file(
+    request: FuzzyLookupRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    license_service: LicenseService = Depends(get_license_service),
+    fuzzy_service: FuzzyService = Depends(get_fuzzy_service)
+):
+    license_service.check_operation_permissions(current_user, db)
+
+    try:
+        output_path = fuzzy_service.process_multi_file_fuzzy_lookup(request, current_user, db)
+        license_service.increment_operation_count(current_user, db)
+
+        return FileResponse(
+            path=output_path,
+            media_type=f'text/{request.output_type}',
+            filename=os.path.basename(output_path)
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 
 @router.post("/query_dataframe")

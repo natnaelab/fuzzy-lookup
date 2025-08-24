@@ -18,7 +18,6 @@ class FuzzyLookupRequest(BaseModel):
     threshold: float
     delimiter: str = ","
     output_type: str = "csv"
-    join_method: str = "inner"
 
 
 class SingleFileFuzzyRequest(BaseModel):
@@ -229,6 +228,80 @@ class FuzzyService:
             job.output_filename = output_filename
             job.output_path = str(output_path)
             job.matches_count = len(processed_df)
+            job.completed_at = datetime.utcnow()
+
+            db.commit()
+
+            return str(output_path)
+
+        except Exception as e:
+            job.status = "failed"
+            job.error_message = str(e)
+            job.completed_at = datetime.utcnow()
+            db.commit()
+            raise
+
+    def process_multi_file_fuzzy_lookup(self, request: FuzzyLookupRequest, user: User, db) -> str:
+        try:
+            user_file_1 = (
+                db.query(UserFile)
+                .filter(UserFile.user_id == user.id, UserFile.stored_filename == request.file_name_1)
+                .first()
+            )
+
+            user_file_2 = (
+                db.query(UserFile)
+                .filter(UserFile.user_id == user.id, UserFile.stored_filename == request.file_name_2)
+                .first()
+            )
+
+            if not user_file_1:
+                raise FileNotFoundError(f"File {request.file_name_1} not found")
+            if not user_file_2:
+                raise FileNotFoundError(f"File {request.file_name_2} not found")
+
+            job = FuzzyJob(
+                user_id=user.id,
+                file_1_id=user_file_1.id,
+                file_2_id=user_file_2.id,
+                job_type="multi_file",
+                status="processing",
+                file_1_column=request.file_1_column,
+                file_2_column=request.file_2_column,
+                threshold=request.threshold,
+                delimiter=request.delimiter,
+                output_type=request.output_type,
+                started_at=datetime.utcnow(),
+            )
+            db.add(job)
+            db.flush()
+
+            df1_processed = FuzzyLookupHelper.fuzzy_lookup_preprocess(user_file_1.file_path, request.file_1_column)
+            df2_processed = FuzzyLookupHelper.fuzzy_lookup_preprocess(user_file_2.file_path, request.file_2_column)
+
+            matches = FuzzyLookupHelper.fuzzylookup_main(
+                df1_processed, df2_processed, request.file_1_column, request.file_2_column, request.threshold
+            )
+
+            result_df = FuzzyLookupHelper.fuzzylookup_postprocess(
+                matches, df1_processed, df2_processed, 
+                request.file_1_column, request.file_2_column, "inner"
+            )
+
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            output_filename = f"fuzzy_match_{user_file_1.original_filename.split('.')[0]}_{user_file_2.original_filename.split('.')[0]}_{timestamp}.{request.output_type}"
+            output_path = self.download_dir / output_filename
+
+            if request.output_type == "xlsx":
+                result_df.to_excel(output_path, index=False)
+            else:
+                delimiter = "\t" if len(request.delimiter) > 1 else request.delimiter
+                result_df.to_csv(output_path, sep=delimiter, index=False)
+
+            job.status = "completed"
+            job.output_filename = output_filename
+            job.output_path = str(output_path)
+            job.matches_count = len(result_df)
             job.completed_at = datetime.utcnow()
 
             db.commit()

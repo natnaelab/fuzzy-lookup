@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Float
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime, timedelta
+from datetime import datetime
 from .database import Base
 import enum
 
@@ -63,7 +62,7 @@ class License(Base):
 
 class UserFile(Base):
     __tablename__ = "user_files"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     original_filename = Column(String, nullable=False)
@@ -73,61 +72,43 @@ class UserFile(Base):
     file_type = Column(String, nullable=False)  # csv, xlsx, xls
     upload_date = Column(DateTime(timezone=True), server_default=func.now())
     is_processed = Column(Boolean, default=False)
-    
+
     # Relationship
     user = relationship("User", back_populates="files")
-    fuzzy_jobs = relationship("FuzzyJob", back_populates="file")
+    fuzzy_jobs = relationship("FuzzyJob", back_populates="file", primaryjoin="UserFile.id == FuzzyJob.file_id")
 
 
 class FuzzyJob(Base):
     __tablename__ = "fuzzy_jobs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     file_id = Column(Integer, ForeignKey("user_files.id"), nullable=True)
+    file_1_id = Column(Integer, ForeignKey("user_files.id"), nullable=True)
+    file_2_id = Column(Integer, ForeignKey("user_files.id"), nullable=True)
     job_type = Column(String, nullable=False)  # single_file, multi_file
     status = Column(String, default="pending")  # pending, processing, completed, failed
-    
+
     # Job parameters
     file_1_column = Column(String, nullable=True)
     file_2_column = Column(String, nullable=True)
     threshold = Column(Float, nullable=False)
     delimiter = Column(String, default=",")
     output_type = Column(String, default="csv")
-    
+
     # Results
     output_filename = Column(String, nullable=True)
     output_path = Column(String, nullable=True)
     matches_count = Column(Integer, default=0)
     error_message = Column(Text, nullable=True)
-    
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    
+
     # Relationships
     user = relationship("User", back_populates="fuzzy_jobs")
-    file = relationship("UserFile", back_populates="fuzzy_jobs")
-
-
-class ApiKey(Base):
-    __tablename__ = "api_keys"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    key_name = Column(String, nullable=False)
-    api_key = Column(String, unique=True, nullable=False)
-    is_active = Column(Boolean, default=True)
-    last_used = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    expires_at = Column(DateTime(timezone=True), nullable=True)
-    
-    # Relationships
-    user = relationship("User")
-    
-    @property
-    def is_expired(self):
-        if self.expires_at:
-            return datetime.utcnow() > self.expires_at
-        return False
+    file = relationship("UserFile", back_populates="fuzzy_jobs", primaryjoin="FuzzyJob.file_id == UserFile.id", viewonly=False)
+    file_1 = relationship("UserFile", primaryjoin="FuzzyJob.file_1_id == UserFile.id", post_update=True)
+    file_2 = relationship("UserFile", primaryjoin="FuzzyJob.file_2_id == UserFile.id", post_update=True)

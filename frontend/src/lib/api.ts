@@ -229,6 +229,24 @@ export class ApiService {
         return response.data;
     }
 
+    static async fuzzyLookupMultiFile(request: {
+        file_name_1: string;
+        file_name_2: string;
+        file_1_column: string;
+        file_2_column: string;
+        threshold: number;
+        delimiter?: string;
+        output_type?: string;
+    }): Promise<Blob> {
+        const response = await api.post('/api/lookup_multi_file', request, {
+            responseType: 'blob',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        });
+        return response.data;
+    }
+
     static async queryDataframe(
         file: File,
         queryColumn: string,
