@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, FuzzyJob
-from app.services.fuzzy import FuzzyService, SingleFileFuzzyRequest, FuzzyLookupRequest, ColumnNamesResponse, OutputDataframe
+from app.models import User, FuzzyJob, UserFile
+from app.services.fuzzy import FuzzyService, SingleFileFuzzyRequest, FuzzyLookupRequest, ColumnNamesResponse, OutputDataframe, FileProcessingHandler
 from app.services.license import LicenseService
 from app.services.file import FileService
 from app.dependencies import get_current_user, get_fuzzy_service, get_license_service, get_file_service
@@ -12,6 +12,7 @@ import os
 import pandas as pd
 import Levenshtein
 import time
+from datetime import datetime
 
 router = APIRouter()
 
@@ -177,6 +178,161 @@ async def download_job_result(
         media_type='application/octet-stream',
         filename=job.output_filename or os.path.basename(job.output_path)
     )
+
+
+@router.post("/upload_and_lookup_single_file_api")
+async def upload_and_lookup_single_file_api(
+    file: UploadFile = File(...),
+    column_1: str = Form(...),
+    column_2: str = Form(...),
+    threshold: float = Form(0.8),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    license_service: LicenseService = Depends(get_license_service),
+    file_service: FileService = Depends(get_file_service)
+):
+    license_service.check_file_upload_permissions(current_user, db, file.size or 0)
+    license_service.check_operation_permissions(current_user, db)
+
+    try:
+        user_file = await file_service.save_uploaded_file(file, current_user, db)
+
+        output_df = OutputDataframe(user_file.file_path)
+        df = output_df.convert_to_dataframe()
+
+        if column_1 not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Column '{column_1}' not found in uploaded file")
+        if column_2 not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Column '{column_2}' not found in uploaded file")
+
+        file_processor = FileProcessingHandler(df, threshold)
+        processed_df = file_processor.pre_process_dataframe(column_1, column_2)
+
+        if 'similarity' in processed_df.columns:
+            processed_df['similarity'] = processed_df['similarity'].round(4)
+
+        data = processed_df.to_dict('records')
+        columns = list(processed_df.columns)
+
+        job = FuzzyJob(
+            user_id=current_user.id,
+            file_id=user_file.id,
+            job_type="upload_and_lookup_api",
+            status="completed",
+            file_1_column=column_1,
+            file_2_column=column_2,
+            threshold=threshold,
+            matches_count=len(data),
+            started_at=datetime.utcnow(),
+            completed_at=datetime.utcnow()
+        )
+        db.add(job)
+
+        license_service.increment_operation_count(current_user, db)
+        db.commit()
+
+        return {
+            "data": data,
+            "columns": columns,
+            "metadata": {
+                "original_filename": file.filename,
+                "stored_filename": user_file.stored_filename,
+                "file_id": user_file.id,
+                "column_1": column_1,
+                "column_2": column_2,
+                "threshold": threshold,
+                "matches_found": len(data),
+                "total_rows_processed": len(df),
+                "job_id": job.id,
+                "available_columns": list(df.columns)
+            }
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+
+@router.post("/lookup_single_file_api")
+async def lookup_single_file_api(
+    request: SingleFileFuzzyRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    license_service: LicenseService = Depends(get_license_service),
+    fuzzy_service: FuzzyService = Depends(get_fuzzy_service)
+):
+    license_service.check_operation_permissions(current_user, db)
+    
+    try:
+        user_file = (
+            db.query(UserFile)
+            .filter(UserFile.user_id == current_user.id, UserFile.stored_filename == request.filename)
+            .first()
+        )
+
+        if not user_file:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        output_df = OutputDataframe(user_file.file_path)
+        df = output_df.convert_to_dataframe()
+        
+        if request.column_1 not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Column '{request.column_1}' not found")
+        if request.column_2 not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Column '{request.column_2}' not found")
+        
+        file_processor = FileProcessingHandler(df, request.threshold)
+        processed_df = file_processor.pre_process_dataframe(request.column_1, request.column_2)
+
+        print("s1", processed_df['similarity'])
+        if 'similarity' in processed_df.columns:
+            processed_df['similarity'] = processed_df['similarity'].round(4)
+        print("s2", processed_df['similarity'])
+
+        data = processed_df.to_dict('records')
+        columns = list(processed_df.columns)
+        
+        job = FuzzyJob(
+            user_id=current_user.id,
+            file_id=user_file.id,
+            job_type="single_file_api",
+            status="completed",
+            file_1_column=request.column_1,
+            file_2_column=request.column_2,
+            threshold=request.threshold,
+            matches_count=len(data),
+            started_at=datetime.utcnow(),
+            completed_at=datetime.utcnow()
+        )
+        db.add(job)
+        
+        license_service.increment_operation_count(current_user, db)
+        db.commit()
+        
+        return {
+            "data": data,
+            "columns": columns,
+            "metadata": {
+                "filename": request.filename,
+                "column_1": request.column_1,
+                "column_2": request.column_2,
+                "threshold": request.threshold,
+                "matches_found": len(data),
+                "total_rows_processed": len(df),
+                "job_id": job.id
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 
 @router.post("/find_duplicates")
