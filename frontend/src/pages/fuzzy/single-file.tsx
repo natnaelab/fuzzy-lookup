@@ -75,10 +75,12 @@ export function SingleFileFuzzyMatching() {
             {license && (
                 <div className="text-right">
                     <Badge variant="secondary" className="text-xs">
-                        {license.license_type.toUpperCase()} License
+                        {license.display_name}
                     </Badge>
                     <p className="text-xs text-muted-foreground">
-                        {license.operations_remaining} operations remaining
+                        {license.conversions_remaining === null
+                            ? "Unlimited conversions"
+                            : `${license.conversions_remaining} conversions remaining`}
                     </p>
                 </div>
             )}

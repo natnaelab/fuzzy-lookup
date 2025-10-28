@@ -30,24 +30,7 @@ async def upgrade_license(
     db: Session = Depends(get_db),
     license_svc: LicenseService = Depends(get_license_service),
 ):
-    new_license = license_svc.upgrade_license(current_user, license_upgrade, db)
-    return LicenseInfo.model_validate(new_license)
-
-
-@router.post("/validate/{license_key}")
-async def validate_license_key(
-    license_key: str, db: Session = Depends(get_db), license_svc: LicenseService = Depends(get_license_service)
-):
-    license = license_svc.validate_license_key(license_key, db)
-    if license:
-        return {
-            "valid": True,
-            "license_type": license.license_type,
-            "expires_at": license.expires_at.isoformat() if license.expires_at else None,
-            "max_file_size_mb": license.max_file_size_mb,
-            "max_monthly_operations": license.max_monthly_operations,
-        }
-    return {"valid": False, "message": "Invalid or expired license key"}
+    return license_svc.upgrade_license(current_user, license_upgrade, db)
 
 
 @router.get("/usage")
@@ -56,20 +39,29 @@ async def get_license_usage(
     db: Session = Depends(get_db),
     license_svc: LicenseService = Depends(get_license_service),
 ):
-    license = license_svc.get_user_active_license(current_user, db)
+    record = license_svc.get_user_active_license(current_user, db)
 
-    if not license:
+    if not record:
         raise HTTPException(status_code=404, detail="No active license found")
 
-    usage_percentage = (license.current_month_operations / license.max_monthly_operations) * 100
+    plan = record.plan
+    remaining = record.conversions_remaining
+    max_conversions = plan.max_conversions
+
+    if max_conversions and remaining is not None:
+        used = max_conversions - remaining
+        usage_percentage = round((used / max_conversions) * 100, 2)
+    else:
+        usage_percentage = None
 
     return {
-        "license_type": license.license_type,
-        "current_operations": license.current_month_operations,
-        "max_operations": license.max_monthly_operations,
-        "operations_remaining": license.operations_remaining,
-        "usage_percentage": round(usage_percentage, 2),
-        "max_file_size_mb": license.max_file_size_mb,
-        "expires_at": license.expires_at.isoformat() if license.expires_at else None,
-        "is_expired": license.is_expired,
+        "plan_id": plan.plan_id,
+        "product_name": plan.product_name,
+        "display_name": plan.display_name,
+        "conversions_remaining": remaining,
+        "max_conversions": max_conversions,
+        "usage_percentage": usage_percentage,
+        "max_file_size_mb": plan.max_file_size_mb,
+        "expires_at": record.expiry.isoformat() if record.expiry else None,
+        "is_expired": record.is_expired,
     }

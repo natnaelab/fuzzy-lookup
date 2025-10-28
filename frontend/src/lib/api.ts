@@ -51,17 +51,14 @@ export interface TokenResponse {
 }
 
 export interface LicenseInfo {
-    id: number;
-    license_type: string;
-    license_key?: string;
-    is_active: boolean;
+    plan_id: string;
+    product: string;
+    display_name: string;
+    conversions_remaining: number | null;
     max_file_size_mb: number;
-    max_monthly_operations: number;
-    current_month_operations: number;
-    operations_remaining: number;
+    expiry?: string | null;
     is_expired: boolean;
-    expires_at?: string;
-    created_at: string;
+    paypal_link?: string | null;
 }
 
 export interface UserFile {
@@ -317,9 +314,9 @@ export class ApiService {
         return response.data;
     }
 
-    static async upgradeLicense(licenseType: string, durationMonths = 12): Promise<LicenseInfo> {
+    static async upgradeLicense(planId: string, durationMonths = 12): Promise<LicenseInfo> {
         const response = await api.post<LicenseInfo>('/license/upgrade', {
-            license_type: licenseType,
+            plan_id: planId,
             duration_months: durationMonths,
         });
         return response.data;

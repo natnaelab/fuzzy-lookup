@@ -1,6 +1,5 @@
 import pandas as pd
-from string_grouper import group_similar_strings, match_strings
-import Levenshtein
+from string_grouper import match_strings
 import time
 from pathlib import Path
 from typing import Dict
@@ -82,38 +81,6 @@ class FileProcessingHandler:
         )
 
         return pd.merge(matches, df_processed, left_on=f"left_{column_1}", right_on=column_1, how="inner")
-
-    def group_similar_strings_in_dataframe(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-        grouped_df = group_similar_strings(df[column_name], min_similarity=self.threshold)
-        df = df.merge(grouped_df, how="left", left_on=column_name, right_on="string")
-        return df.reset_index(drop=True)
-
-    def calculate_similarity_metrics(self, dfs_combined: pd.DataFrame, column_name: str) -> pd.DataFrame:
-        try:
-            dfs_combined["Distance"] = dfs_combined.apply(
-                lambda x: Levenshtein.distance(x[column_name], x["group rep"]), axis=1
-            )
-            dfs_combined["Similarity"] = dfs_combined.apply(
-                lambda x: Levenshtein.ratio(x[column_name], x["group rep"]), axis=1
-            )
-
-            dfs_combined = dfs_combined[dfs_combined["Distance"] < 5]
-
-            data_framerawgrouped1 = (
-                dfs_combined.groupby(["group rep ID", "group rep"]).size().reset_index(name="counts")
-            )
-            data_framerawgrouped1 = data_framerawgrouped1[data_framerawgrouped1["counts"] > 1].reset_index(drop=True)
-            data_framerawgrouped1 = data_framerawgrouped1.sort_values(by="group rep", ascending=True)
-            data_framerawgrouped1["rank"] = data_framerawgrouped1.index + 1
-
-            data_finalgroup = pd.merge(dfs_combined, data_framerawgrouped1, how="inner", on="group rep ID")
-            data_finalgroup = data_finalgroup.sort_values(by="rank", ascending=True)
-            data_finalgroup.insert(0, "rank", data_finalgroup.pop("rank"))
-            data_finalgroup.drop(["group rep_y"], axis=1, inplace=True)
-
-            return data_finalgroup
-        except Exception as e:
-            raise
 
 
 class FuzzyLookupHelper:

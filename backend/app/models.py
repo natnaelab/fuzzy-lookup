@@ -1,14 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
 from .database import Base
-import enum
-
-
-class LicenseType(enum.Enum):
-    FREE = "free"
-    PREMIUM = "premium"
 
 
 class User(Base):
@@ -26,39 +19,8 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
-    licenses = relationship("License", back_populates="user", cascade="all, delete-orphan")
     files = relationship("UserFile", back_populates="user", cascade="all, delete-orphan")
     fuzzy_jobs = relationship("FuzzyJob", back_populates="user", cascade="all, delete-orphan")
-
-
-class License(Base):
-    __tablename__ = "licenses"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    license_type = Column(String, nullable=False, default=LicenseType.FREE.value)
-    license_key = Column(String, unique=True, nullable=True)
-    is_active = Column(Boolean, default=True)
-    max_file_size_mb = Column(Integer, default=10)  # Max file size in MB
-    max_monthly_operations = Column(Integer, default=100)  # Max operations per month
-    current_month_operations = Column(Integer, default=0)
-    expires_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
-    # Relationship
-    user = relationship("User", back_populates="licenses")
-    
-    @property
-    def is_expired(self):
-        if self.expires_at:
-            return datetime.utcnow() > self.expires_at
-        return False
-    
-    @property
-    def operations_remaining(self):
-        return max(0, self.max_monthly_operations - self.current_month_operations)
-
 
 class UserFile(Base):
     __tablename__ = "user_files"

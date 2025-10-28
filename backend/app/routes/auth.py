@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.auth import AuthService, UserCreate, UserLogin, Token, UserResponse
+from app.services.license import LicenseService
 from app.models import User
-from app.dependencies import get_current_user, get_auth_service
+from app.dependencies import get_current_user, get_auth_service, get_license_service
 
 router = APIRouter()
 
@@ -12,11 +13,12 @@ router = APIRouter()
 async def register_user(
     user_data: UserCreate, 
     db: Session = Depends(get_db),
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
+    license_service: LicenseService = Depends(get_license_service),
 ):
     """Register a new user with a default free license"""
     try:
-        user = auth_service.create_user_with_license(db, user_data)
+        user = auth_service.create_user_with_license(db, user_data, license_service)
         return UserResponse.model_validate(user)
     except ValueError as e:
         raise HTTPException(

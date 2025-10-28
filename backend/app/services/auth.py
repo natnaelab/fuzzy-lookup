@@ -1,12 +1,13 @@
 from jose import jwt
 import bcrypt
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import os
-from ..models import User, License, LicenseType
+from ..models import User
 from pydantic import BaseModel, EmailStr
-import secrets
-import string
+
+if TYPE_CHECKING:
+    from .license import LicenseService
 
 
 class UserCreate(BaseModel):
@@ -66,12 +67,12 @@ class AuthService:
         except jwt.JWTError:
             return None
 
-    def generate_license_key(self) -> str:
-        chars = string.ascii_uppercase + string.digits
-        parts = ["".join(secrets.choice(chars) for _ in range(4)) for _ in range(4)]
-        return "-".join(parts)
-
-    def create_user_with_license(self, db, user_data: UserCreate):
+    def create_user_with_license(
+        self,
+        db,
+        user_data: UserCreate,
+        license_service: "LicenseService",
+    ):
         if db.query(User).filter((User.email == user_data.email) | (User.username == user_data.username)).first():
             raise ValueError("User with this email or username already exists")
 
@@ -85,17 +86,10 @@ class AuthService:
         db.add(user)
         db.flush()
 
-        license = License(
-            user_id=user.id,
-            license_type=LicenseType.FREE.value,
-            license_key=self.generate_license_key(),
-            max_file_size_mb=10,
-            max_monthly_operations=100,
-            expires_at=datetime.utcnow() + timedelta(days=365),
-        )
-        db.add(license)
         db.commit()
         db.refresh(user)
+
+        license_service.ensure_default_subscription(user)
         return user
 
     def authenticate_user(self, db, email: str, password: str) -> Optional[User]:
