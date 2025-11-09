@@ -4,7 +4,10 @@ from sqlalchemy.orm import sessionmaker
 import os
 from pathlib import Path
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fuzzy_lookup.db")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg://fuzzy_user:fuzzy_password@localhost:5432/fuzzy_lookup",
+)
 
 if DATABASE_URL.startswith("sqlite"):
     db_path = Path(DATABASE_URL.replace("sqlite:///./", ""))

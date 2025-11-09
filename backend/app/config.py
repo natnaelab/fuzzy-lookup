@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 
 class Settings:
@@ -8,7 +8,10 @@ class Settings:
     APP_VERSION: str = "1.0.0"
     
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./fuzzy_app.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://fuzzy_user:fuzzy_password@localhost:5432/fuzzy_lookup",
+    )
     
     DATA_DIR: Path = Path("data")
     UPLOADS_DIR: Path = DATA_DIR / "uploads"
@@ -17,7 +20,6 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     MAX_FILE_SIZE_MB: int = 100
-    FIRESTORE_PROJECT_ID: Optional[str] = os.getenv("FIRESTORE_PROJECT_ID")
     SUBSCRIPTION_COLLECTION: str = os.getenv("SUBSCRIPTION_COLLECTION", "payments")
     SUBSCRIPTION_DOC_IDS: List[str] = [
         item.strip()

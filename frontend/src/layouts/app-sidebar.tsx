@@ -77,8 +77,6 @@ const AppSidebar: React.FC = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuItem>License</DropdownMenuItem>
                   <DropdownMenuItem>Support</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>

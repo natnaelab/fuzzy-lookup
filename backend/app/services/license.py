@@ -119,8 +119,6 @@ class LicenseService:
 
     def _create_client(self) -> firestore.Client:
         try:
-            if settings.FIRESTORE_PROJECT_ID:
-                return firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
             return firestore.Client()
         except Exception as exc:
             raise RuntimeError("Failed to create Firestore client") from exc
@@ -244,7 +242,7 @@ class LicenseService:
 
     def _get_record(self, email: str) -> Optional[SubscriptionRecord]:
         for doc_id in self.doc_ids:
-            doc_ref = self._collection().doc(doc_id)
+            doc_ref = self._collection().document(doc_id)
             snapshot = doc_ref.get()
             if not snapshot.exists:
                 continue
@@ -278,7 +276,7 @@ class LicenseService:
         doc_id: Optional[str] = None,
     ) -> SubscriptionRecord:
         doc_id = doc_id or plan.doc_id or self.default_doc_id
-        doc_ref = self._collection().doc(doc_id)
+        doc_ref = self._collection().document(doc_id)
 
         expiry_value = expiry.date().isoformat() if expiry else None
         payload = {
@@ -299,7 +297,7 @@ class LicenseService:
         )
 
     def _decrement_conversion(self, record: SubscriptionRecord):
-        doc_ref = self._collection().doc(record.doc_id)
+        doc_ref = self._collection().document(record.doc_id)
 
         @firestore.transactional
         def decrement(transaction: firestore.Transaction):

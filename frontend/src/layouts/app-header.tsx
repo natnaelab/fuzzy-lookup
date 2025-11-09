@@ -12,8 +12,15 @@ import {
 // import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SIDEBAR_MENU_ITEMS } from "@/constants/dashboard";
+import { useAuth } from "@/context/AuthContext";
 
 const AppHeader: React.FC = () => {
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <header className="flex z-[20] h-14 items-center gap-4 w-full border-b px-4 flex-shrink-0 lg:h-[60px] lg:px-6">
       <Sheet>
@@ -34,6 +41,7 @@ const AppHeader: React.FC = () => {
             </Link>
             {SIDEBAR_MENU_ITEMS.map((link) => (
               <Link
+                key={link.key}
                 to={link.href}
                 className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
               >
@@ -62,10 +70,9 @@ const AppHeader: React.FC = () => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Settings</DropdownMenuItem>
                     <DropdownMenuItem>Support</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Logout</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -95,10 +102,9 @@ const AppHeader: React.FC = () => {
         <DropdownMenuContent align="end" className="bg-white z-[1210]">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

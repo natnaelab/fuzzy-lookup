@@ -24,6 +24,10 @@ COPY . .
 
 RUN chown -R appuser:appuser /app
 
+RUN mkdir -p /app/creds \
+    && touch /app/creds/serviceAccountKey.json \
+    && chown -R appuser:appuser /app/creds
+
 USER appuser
 
 ENV PYTHONPATH=/app
