@@ -7,7 +7,14 @@ class Settings:
     APP_NAME: str = "Fuzzy Lookup"
     APP_VERSION: str = "1.0.0"
     
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    ALLOWED_ORIGINS: List[str] = [
+        origin.strip()
+        for origin in os.getenv(
+            "ALLOWED_ORIGINS",
+            "http://localhost:3000,http://localhost:5173",
+        ).split(",")
+        if origin.strip()
+    ]
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
         "postgresql+psycopg://fuzzy_user:fuzzy_password@localhost:5432/fuzzy_lookup",
