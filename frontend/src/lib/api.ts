@@ -1,7 +1,14 @@
 import axios, { AxiosError } from 'axios';
 
-// API Base URL
-const API_BASE_URL = 'http://localhost:8000';
+const defaultBaseUrl =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : `${window.location.origin}`;
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  defaultBaseUrl
+).replace(/\/$/, '');
 
 // Create axios instance
 const api = axios.create({
