@@ -62,3 +62,16 @@ volumes:
     driver: local
   postgres_data:
     driver: local
+  nginx:
+    image: nginx:1.25-alpine
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/certbot:/var/www/certbot:ro
+    restart: unless-stopped
