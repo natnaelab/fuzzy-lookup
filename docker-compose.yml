@@ -57,11 +57,6 @@ services:
       timeout: 5s
       retries: 5
 
-volumes:
-  sqlite_data:
-    driver: local
-  postgres_data:
-    driver: local
   nginx:
     image: nginx:1.25-alpine
     depends_on:
@@ -73,5 +68,11 @@ volumes:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
-      - ./nginx/certbot:/var/www/certbot:ro
+      - ./nginx/certbot:/var/www/certbot
     restart: unless-stopped
+
+volumes:
+  sqlite_data:
+    driver: local
+  postgres_data:
+    driver: local
