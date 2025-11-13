@@ -1,14 +1,14 @@
 ## Nginx / TLS Setup
 
 1. **Point DNS**  
-   Create `A` records for `fuzzylookupmatch.com`, `www.fuzzylookupmatch.com`, and `api.fuzzylookupmatch.com` that point to your server.
+   Create `A` records for `fuzzylookupmatch.com` and `api.fuzzylookupmatch.com` that point to your server.
 
 2. **Obtain certificates**  
    Use Certbot (webroot mode) on the server so it can write challenges into `nginx/certbot`. Example:
    ```bash
    sudo certbot certonly --webroot \
      -w /path/to/repo/nginx/certbot \
-     -d fuzzylookupmatch.com -d www.fuzzylookupmatch.com
+     -d fuzzylookupmatch.com
 
    sudo certbot certonly --webroot \
      -w /path/to/repo/nginx/certbot \
