@@ -180,7 +180,8 @@ api.interceptors.response.use(
         return response;
     },
     (error: AxiosError) => {
-        if (error.response?.status === 401) {
+        // Don't redirect if it's a login failure
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
             TokenManager.removeToken();
             window.location.href = '/login';
         }
