@@ -3,7 +3,9 @@ import axios, { AxiosError } from 'axios';
 const defaultBaseUrl =
     window.location.hostname === 'localhost'
         ? 'http://localhost:8000'
-        : `${window.location.origin}`;
+        : window.location.hostname === 'fuzzylookupmatch.com'
+            ? 'https://api.fuzzylookupmatch.com'
+            : `${window.location.origin}`;
 
 const API_BASE_URL = (
     import.meta.env.VITE_API_BASE_URL ||

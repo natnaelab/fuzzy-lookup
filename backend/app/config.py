@@ -11,7 +11,7 @@ class Settings:
         origin.strip()
         for origin in os.getenv(
             "ALLOWED_ORIGINS",
-            "http://localhost:3000,http://localhost:5173",
+            "http://localhost:3000,http://localhost:5173,https://fuzzylookupmatch.com,http://fuzzylookupmatch.com",
         ).split(",")
         if origin.strip()
     ]
