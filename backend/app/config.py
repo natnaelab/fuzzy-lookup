@@ -11,9 +11,14 @@ class Settings:
         origin.strip()
         for origin in os.getenv(
             "ALLOWED_ORIGINS",
-            "http://localhost:3000,http://localhost:5173,https://fuzzylookupmatch.com,http://fuzzylookupmatch.com",
+            "http://localhost:3000,http://localhost:5173",
         ).split(",")
         if origin.strip()
+    ] + [
+        "https://fuzzylookupmatch.com",
+        "http://fuzzylookupmatch.com",
+        "https://api.fuzzylookupmatch.com",
+        "http://api.fuzzylookupmatch.com"
     ]
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
