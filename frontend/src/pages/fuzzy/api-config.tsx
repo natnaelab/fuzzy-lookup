@@ -320,12 +320,6 @@ export function APIConfigurationPage() {
                                                                     {apiDocs.curl_example}
                                                                 </pre>
                                                             </div>
-                                                            <div>
-                                                                <h4 className="font-semibold mb-2">Python Example</h4>
-                                                                <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-                                                                    {apiDocs.python_example}
-                                                                </pre>
-                                                            </div>
                                                         </div>
                                                     )}
                                                 </DialogContent>
