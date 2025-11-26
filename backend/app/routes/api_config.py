@@ -385,8 +385,8 @@ async def get_api_documentation(
             detail="Configuration not found"
         )
     
-    # Get base URL from request (in production, this would be from config)
-    base_url = "https://your-domain.com"  # TODO: Get from environment
+    # Base URL for API
+    base_url = "https://api.fuzzylookupmatch.com"
     
     documentation = {
         "config_id": config.id,
@@ -443,28 +443,6 @@ curl -X POST "{base_url}/api/configurations/{config.id}/query" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{{"search_term": "Microsoft Corporation", "threshold": 0.85}}'
-        """.strip(),
-        "python_example": f"""
-import requests
-
-# Step 1: Login to get token
-login_response = requests.post(
-    "{base_url}/auth/login",
-    json={{"username": "your-email@example.com", "password": "your-password"}}
-)
-token = login_response.json()["access_token"]
-
-# Step 2: Query the API
-query_response = requests.post(
-    "{base_url}/api/configurations/{config.id}/query",
-    headers={{"Authorization": f"Bearer {{token}}"}},
-    json={{"search_term": "Microsoft Corporation", "threshold": 0.85}}
-)
-
-results = query_response.json()
-print(f"Found {{results['matches_found']}} matches")
-for match in results['results']:
-    print(f"  {{match['{config.column_name}']}} - Similarity: {{match['similarity_score']}}")
         """.strip()
     }
     
