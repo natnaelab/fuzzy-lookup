@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import ApiService, { type APIConfiguration, type UserFile } from "@/lib/api";
-import { Trash2, Eye, Code } from "lucide-react";
+import { Trash2, Code } from "lucide-react";
 
 export function APIConfigurationPage() {
     const { license } = useAuth();
