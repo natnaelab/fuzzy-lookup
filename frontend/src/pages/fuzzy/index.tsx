@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainWrapper from "@/layouts/wrappers/main-wrapper";
 import { SingleFileFuzzyMatching } from "./single-file";
 import { MultiFileFuzzyMatching } from "./multi-file";
+import { APIConfigurationPage } from "./api-config";
 
 export function FuzzyMatching() {
     const [activeTab, setActiveTab] = useState("single");
@@ -18,9 +19,10 @@ export function FuzzyMatching() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full max-w-md grid-cols-2">
-                        <TabsTrigger value="single">Single File</TabsTrigger>
-                        <TabsTrigger value="multi">Multi File</TabsTrigger>
+                    <TabsList className="grid w-full max-w-3xl grid-cols-3">
+                        <TabsTrigger value="single">Group Similar Names / Text</TabsTrigger>
+                        <TabsTrigger value="multi">Fuzzy lookup two File</TabsTrigger>
+                        <TabsTrigger value="api">API Configuration</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="single" className="mt-6">
@@ -29,6 +31,10 @@ export function FuzzyMatching() {
 
                     <TabsContent value="multi" className="mt-6">
                         <MultiFileFuzzyMatching />
+                    </TabsContent>
+
+                    <TabsContent value="api" className="mt-6">
+                        <APIConfigurationPage />
                     </TabsContent>
                 </Tabs>
             </div>

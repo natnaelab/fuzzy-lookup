@@ -42,23 +42,40 @@ class OutputDataframe:
 
     def convert_to_dataframe(self) -> pd.DataFrame:
         if self.extension == ".csv":
-            for encoding in ["utf-8", "latin-1", "cp1252"]:
-                try:
-                    for sep in [",", ";", "\t"]:
-                        try:
-                            df = pd.read_csv(self.input_file, encoding=encoding, sep=sep)
-                            if len(df.columns) > 1:
-                                return df
-                        except:
-                            continue
-                    return pd.read_csv(self.input_file, encoding=encoding)
-                except:
-                    continue
-            raise ValueError("Could not read CSV file with any encoding")
+            # Try multiple encoding and delimiter combinations for CSV
+            for encoding in ["utf-8", "latin-1", "cp1252", "iso-8859-1"]:
+                for sep in [",", ";", "\t", "|"]:
+                    try:
+                        df = pd.read_csv(self.input_file, encoding=encoding, sep=sep, on_bad_lines='skip')
+                        # Valid CSV should have at least 2 columns
+                        if len(df.columns) > 1 and len(df) > 0:
+                            return df
+                    except Exception:
+                        continue
+            
+            # If all combinations fail, try with default settings and error_bad_lines skip
+            try:
+                df = pd.read_csv(self.input_file, on_bad_lines='skip')
+                if len(df) > 0:
+                    return df
+            except Exception as e:
+                raise ValueError(f"Could not read CSV file. Please ensure the file is properly formatted. Error: {str(e)}")
+            
+            raise ValueError("Could not read CSV file with any encoding/delimiter combination")
+        
         elif self.extension == ".xlsx":
-            return pd.read_excel(self.input_file, engine="openpyxl")
+            # Use openpyxl engine for .xlsx files (Excel 2007+)
+            try:
+                return pd.read_excel(self.input_file, engine="openpyxl", sheet_name=0)
+            except Exception as e:
+                raise ValueError(f"Could not read XLSX file. Error: {str(e)}")
+        
         elif self.extension == ".xls":
-            return pd.read_excel(self.input_file)
+            # Use xlrd engine for .xls files (Excel 97-2003)
+            try:
+                return pd.read_excel(self.input_file, engine="xlrd", sheet_name=0)
+            except Exception as e:
+                raise ValueError(f"Could not read XLS file. Please ensure xlrd is installed. Error: {str(e)}")
 
 
 class FileProcessingHandler:

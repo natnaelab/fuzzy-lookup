@@ -21,6 +21,7 @@ class User(Base):
     # Relationships
     files = relationship("UserFile", back_populates="user", cascade="all, delete-orphan")
     fuzzy_jobs = relationship("FuzzyJob", back_populates="user", cascade="all, delete-orphan")
+    api_configurations = relationship("APIConfiguration", back_populates="user", cascade="all, delete-orphan")
 
 class UserFile(Base):
     __tablename__ = "user_files"
@@ -74,3 +75,22 @@ class FuzzyJob(Base):
     file = relationship("UserFile", back_populates="fuzzy_jobs", primaryjoin="FuzzyJob.file_id == UserFile.id", viewonly=False)
     file_1 = relationship("UserFile", primaryjoin="FuzzyJob.file_1_id == UserFile.id", post_update=True)
     file_2 = relationship("UserFile", primaryjoin="FuzzyJob.file_2_id == UserFile.id", post_update=True)
+
+
+class APIConfiguration(Base):
+    __tablename__ = "api_configurations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)  # User-friendly name for the configuration
+    description = Column(String, nullable=True)  # Optional description
+    file_id = Column(Integer, ForeignKey("user_files.id"), nullable=False)  # Reference dataset
+    column_name = Column(String, nullable=False)  # Column to perform fuzzy matching on
+    threshold = Column(Float, default=0.8)  # Default similarity threshold
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    is_active = Column(Boolean, default=True)  # Soft delete capability
+    
+    # Relationships
+    user = relationship("User", back_populates="api_configurations")
+    file = relationship("UserFile")

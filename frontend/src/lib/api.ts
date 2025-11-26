@@ -1,13 +1,13 @@
 import axios, { AxiosError } from 'axios';
 
 const defaultBaseUrl =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
-    : `${window.location.origin}`;
+    window.location.hostname === 'localhost'
+        ? 'http://localhost:8000'
+        : `${window.location.origin}`;
 
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ||
-  defaultBaseUrl
+    import.meta.env.VITE_API_BASE_URL ||
+    defaultBaseUrl
 ).replace(/\/$/, '');
 
 // Create axios instance
@@ -89,6 +89,49 @@ export interface FuzzyJob {
     threshold: number;
     output_filename?: string;
     error_message?: string;
+}
+
+export interface APIConfiguration {
+    id: number;
+    name: string;
+    description?: string;
+    file_id: number;
+    filename: string;
+    column_name: string;
+    threshold: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface APIConfigCreate {
+    name: string;
+    description?: string;
+    file_id: number;
+    column_name: string;
+    threshold: number;
+}
+
+export interface APIConfigUpdate {
+    name?: string;
+    description?: string;
+    column_name?: string;
+    threshold?: number;
+    is_active?: boolean;
+}
+
+export interface QueryRequest {
+    search_term: string;
+    threshold?: number;
+}
+
+export interface QueryResponse {
+    config_id: number;
+    config_name: string;
+    search_term: string;
+    threshold: number;
+    matches_found: number;
+    results: any[];
 }
 
 // Token management
@@ -331,6 +374,43 @@ export class ApiService {
 
     static async getLicenseUsage(): Promise<any> {
         const response = await api.get('/license/usage');
+        return response.data;
+    }
+
+    // API Configuration methods
+    static async createAPIConfig(data: APIConfigCreate): Promise<APIConfiguration> {
+        const response = await api.post<APIConfiguration>('/api/configurations/', data);
+        return response.data;
+    }
+
+    static async getAPIConfigs(includeInactive = false): Promise<APIConfiguration[]> {
+        const response = await api.get<APIConfiguration[]>(
+            `/api/configurations/?include_inactive=${includeInactive}`
+        );
+        return response.data;
+    }
+
+    static async getAPIConfig(configId: number): Promise<APIConfiguration> {
+        const response = await api.get<APIConfiguration>(`/api/configurations/${configId}`);
+        return response.data;
+    }
+
+    static async updateAPIConfig(configId: number, data: APIConfigUpdate): Promise<APIConfiguration> {
+        const response = await api.put<APIConfiguration>(`/api/configurations/${configId}`, data);
+        return response.data;
+    }
+
+    static async deleteAPIConfig(configId: number): Promise<void> {
+        await api.delete(`/api/configurations/${configId}`);
+    }
+
+    static async queryAPIConfig(configId: number, data: QueryRequest): Promise<QueryResponse> {
+        const response = await api.post<QueryResponse>(`/api/configurations/${configId}/query`, data);
+        return response.data;
+    }
+
+    static async getAPIConfigDocs(configId: number): Promise<any> {
+        const response = await api.get(`/api/configurations/${configId}/docs`);
         return response.data;
     }
 
