@@ -1,5 +1,5 @@
 import { Props } from "@/components/icons/types";
-import { Home, GitMerge } from "lucide-react";
+import { Home, GitMerge, CreditCard } from "lucide-react";
 
 export const SIDEBAR_MENU_ITEMS: {
   key: string;
@@ -18,5 +18,11 @@ export const SIDEBAR_MENU_ITEMS: {
       label: "Fuzzy Matching",
       href: "/fuzzy",
       Icon: GitMerge,
+    },
+    {
+      key: "subscription",
+      label: "Subscription",
+      href: "/subscription",
+      Icon: CreditCard,
     },
   ];
