@@ -32,7 +32,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         max_conversions=50,
         max_file_size_mb=10,
         default_duration_days=30,
-        paypal_link="{{BASIC_PLAN_LINK}}",
+        paypal_link="https://www.paypal.com/billing/plans/P-0KB98147CY755271SNDYPGNQ",
         doc_id="Fuzzycloud",
     ),
     "standard": SubscriptionPlan(
@@ -42,7 +42,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         max_conversions=None,
         max_file_size_mb=50,
         default_duration_days=30,
-        paypal_link="{{STANDARD_PLAN_LINK}}",
+        paypal_link="https://www.paypal.com/billing/plans/P-88A51664YJ336081YNDSSZ4I",
         doc_id="Fuzzycloud",
     ),
 }
