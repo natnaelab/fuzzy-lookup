@@ -50,11 +50,6 @@ export function SubscriptionPage() {
                 included: true
             },
             {
-                feature: "API Access",
-                value: "Full API access",
-                included: true
-            },
-            {
                 feature: "Duration",
                 value: `${plan.default_duration_days} days`,
                 included: true
@@ -68,8 +63,8 @@ export function SubscriptionPage() {
 
     const getPlanPrice = (planId: string) => {
         if (planId === "free") return "Free";
-        if (planId === "basic") return "$9.99/month";
-        if (planId === "standard") return "$29.99/month";
+        if (planId === "basic") return "$70";
+        if (planId === "standard") return "$150";
         return "Contact us";
     };
 
@@ -110,8 +105,8 @@ export function SubscriptionPage() {
                             <div className="flex justify-between">
                                 <span className="text-sm font-medium">Conversions Remaining:</span>
                                 <span className="text-sm">
-                                    {license.conversions_remaining === null 
-                                        ? "Unlimited" 
+                                    {license.conversions_remaining === null
+                                        ? "Unlimited"
                                         : license.conversions_remaining}
                                 </span>
                             </div>
@@ -136,8 +131,8 @@ export function SubscriptionPage() {
                     <h2 className="text-2xl font-semibold mb-4">Available Plans</h2>
                     <div className="grid gap-6 md:grid-cols-3">
                         {plans.map((plan) => (
-                            <Card 
-                                key={plan.plan_id} 
+                            <Card
+                                key={plan.plan_id}
                                 className={isCurrentPlan(plan.plan_id) ? "border-primary" : ""}
                             >
                                 <CardHeader>
@@ -147,7 +142,7 @@ export function SubscriptionPage() {
                                             <Badge variant="outline">Current</Badge>
                                         )}
                                     </div>
-                                    <CardDescription className="text-2xl font-bold">
+                                    <CardDescription className="text-2xl font-bold mt-2">
                                         {getPlanPrice(plan.plan_id)}
                                     </CardDescription>
                                 </CardHeader>
@@ -169,14 +164,14 @@ export function SubscriptionPage() {
                                     </div>
 
                                     {plan.paypal_link && !isCurrentPlan(plan.plan_id) && (
-                                        <Button 
-                                            asChild 
+                                        <Button
+                                            asChild
                                             className="w-full"
                                             variant={plan.plan_id === "standard" ? "default" : "outline"}
                                         >
-                                            <a 
-                                                href={plan.paypal_link} 
-                                                target="_blank" 
+                                            <a
+                                                href={plan.paypal_link}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                             >
                                                 Upgrade to {plan.display_name}
