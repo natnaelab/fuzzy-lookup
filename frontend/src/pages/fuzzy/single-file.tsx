@@ -18,21 +18,40 @@ export function SingleFileFuzzyMatching() {
     const [threshold, setThreshold] = useState(80);
     const [selectedColumn, setSelectedColumn] = useState("");
     const [outputType, setOutputType] = useState("csv");
+    const [sheetNames, setSheetNames] = useState<string[]>([]);
+    const [selectedSheet, setSelectedSheet] = useState<string>("");
+    const [fileId, setFileId] = useState<number | null>(null);
 
-    const handleFileUpload = async (uploadedFile: File) => {
+    const handleFileUpload = async (uploadedFile: File, sheet?: string) => {
         setLoading(true);
         setError("");
         setSuccess("");
 
         try {
-            const result = await ApiService.getColumnNames(uploadedFile);
+            const result = await ApiService.getColumnNames(uploadedFile, sheet);
             setColumns(result.column_names);
+            setSelectedColumn("");
             setFile(uploadedFile);
+            setFileId(result.file_id);
+            setSheetNames(result.sheet_names || []);
+            setSelectedSheet(result.sheet_name || "");
             setSuccess(`File loaded: ${uploadedFile.name} - ${Object.keys(result.column_names).length} columns found`);
         } catch (err: any) {
             setError(`Error: ${err.response?.data?.detail || err.message}`);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSheetChange = async (sheet: string) => {
+        if (!fileId) return;
+        try {
+            const response = await ApiService.getFileColumns(fileId, sheet);
+            setColumns(response.column_names);
+            setSelectedSheet(response.sheet_name || sheet);
+            setSelectedColumn("");
+        } catch (err: any) {
+            setError(`Failed to load sheet "${sheet}": ${err.response?.data?.detail || err.message}`);
         }
     };
 
@@ -51,7 +70,8 @@ export function SingleFileFuzzyMatching() {
                 file,
                 selectedColumn,
                 threshold / 100,
-                outputType
+                outputType,
+                selectedSheet || undefined
             );
 
             ApiService.downloadBlob(blob, `duplicates_${Date.now()}.${outputType}`);
@@ -121,6 +141,31 @@ export function SingleFileFuzzyMatching() {
 
                     {Object.keys(columns).length > 0 && (
                         <div className="space-y-4">
+                            {sheetNames.length > 0 && (
+                                <div>
+                                    <Label>Select Sheet</Label>
+                                    <Select
+                                        value={selectedSheet}
+                                        onValueChange={(value) => handleSheetChange(value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choose sheet" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sheetNames.map((sheet) => (
+                                                <SelectItem key={sheet} value={sheet}>
+                                                    {sheet}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {Object.keys(columns).length > 0 && (
+                        <div className="space-y-4">
                             <Label>Select Column with Names</Label>
                             <Select value={selectedColumn} onValueChange={setSelectedColumn}>
                                 <SelectTrigger>
@@ -165,7 +210,12 @@ export function SingleFileFuzzyMatching() {
 
                     <Button
                         onClick={findDuplicates}
-                        disabled={loading || !file || !selectedColumn}
+                        disabled={
+                            loading ||
+                            !file ||
+                            !selectedColumn ||
+                            (sheetNames.length > 0 && !selectedSheet)
+                        }
                         className="w-full"
                     >
                         {loading ? "Finding Duplicates..." : "Find Duplicates"}

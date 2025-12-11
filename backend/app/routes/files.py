@@ -131,13 +131,22 @@ async def get_file_columns(
     db: Session = Depends(get_db),
     file_service: FileService = Depends(get_file_service),
     fuzzy_service: FuzzyService = Depends(get_fuzzy_service),
+    sheet_name: str = None
 ):
     try:
         user_file = file_service.get_file_by_id(file_id, current_user, db)
 
-        column_names = fuzzy_service.get_column_names(user_file.file_path)
+        column_names, sheet_names, resolved_sheet = fuzzy_service.get_column_names(
+            user_file.file_path, sheet_name
+        )
 
-        return {"file_id": file_id, "original_filename": user_file.original_filename, "column_names": column_names}
+        return {
+            "file_id": file_id,
+            "original_filename": user_file.original_filename,
+            "column_names": column_names,
+            "sheet_names": sheet_names,
+            "sheet_name": resolved_sheet,
+        }
 
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

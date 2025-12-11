@@ -20,6 +20,7 @@ router = APIRouter()
 @router.post("/column_names", response_model=ColumnNamesResponse)
 async def get_column_names(
     file: UploadFile = File(...),
+    sheet_name: str = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     license_svc: LicenseService = Depends(get_license_service),
@@ -28,11 +29,14 @@ async def get_column_names(
 ):
     license_svc.check_file_upload_permissions(current_user, db, file.size or 0)
     user_file = await file_svc.save_uploaded_file(file, current_user, db)
-    column_names = fuzzy_svc.get_column_names(user_file.file_path)
-    
+    column_names, sheet_names, resolved_sheet = fuzzy_svc.get_column_names(user_file.file_path, sheet_name)
+
     return ColumnNamesResponse(
         filename=user_file.stored_filename,
-        column_names=column_names
+        column_names=column_names,
+        file_id=user_file.id,
+        sheet_names=sheet_names,
+        sheet_name=resolved_sheet
     )
 
 @router.post("/lookup_single_file")
@@ -85,6 +89,7 @@ async def query_dataframe_api(
     query_column: str = Form(...),
     search_term: str = Form(...),
     threshold: float = Form(0.8),
+    sheet_name: str = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     license_service: LicenseService = Depends(get_license_service),
@@ -94,7 +99,7 @@ async def query_dataframe_api(
     license_service.check_operation_permissions(current_user, db)
     
     user_file = await file_service.save_uploaded_file(file, current_user, db)
-    df = OutputDataframe(user_file.file_path).convert_to_dataframe()
+    df = OutputDataframe(user_file.file_path, sheet_name).convert_to_dataframe()
     
     if query_column not in df.columns:
         raise HTTPException(status_code=400, detail=f"Column '{query_column}' not found")
@@ -186,6 +191,7 @@ async def upload_and_lookup_single_file_api(
     column_1: str = Form(...),
     column_2: str = Form(...),
     threshold: float = Form(0.8),
+    sheet_name: str = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     license_service: LicenseService = Depends(get_license_service),
@@ -197,7 +203,7 @@ async def upload_and_lookup_single_file_api(
     try:
         user_file = await file_service.save_uploaded_file(file, current_user, db)
 
-        output_df = OutputDataframe(user_file.file_path)
+        output_df = OutputDataframe(user_file.file_path, sheet_name)
         df = output_df.convert_to_dataframe()
 
         if column_1 not in df.columns:
@@ -275,7 +281,7 @@ async def lookup_single_file_api(
         if not user_file:
             raise HTTPException(status_code=404, detail="File not found")
         
-        output_df = OutputDataframe(user_file.file_path)
+        output_df = OutputDataframe(user_file.file_path, request.sheet_name)
         df = output_df.convert_to_dataframe()
         
         if request.column_1 not in df.columns:
@@ -341,6 +347,7 @@ async def find_duplicates_in_column(
     column_name: str = Form(...),
     threshold: float = Form(0.8),
     output_type: str = Form("csv"),
+    sheet_name: str = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     license_service: LicenseService = Depends(get_license_service),
@@ -350,7 +357,7 @@ async def find_duplicates_in_column(
     license_service.check_operation_permissions(current_user, db)
 
     user_file = await file_service.save_uploaded_file(file, current_user, db)
-    df = OutputDataframe(user_file.file_path).convert_to_dataframe()
+    df = OutputDataframe(user_file.file_path, sheet_name).convert_to_dataframe()
 
     if column_name not in df.columns:
         raise HTTPException(status_code=400, detail=f"Column '{column_name}' not found")

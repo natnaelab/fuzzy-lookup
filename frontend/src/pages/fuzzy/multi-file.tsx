@@ -13,6 +13,9 @@ interface FileData {
     filename: string;
     columns: Record<string, string>;
     selectedColumn: string;
+    fileId?: number;
+    sheetNames?: string[];
+    selectedSheet?: string;
 }
 
 export function MultiFileFuzzyMatching() {
@@ -41,19 +44,22 @@ export function MultiFileFuzzyMatching() {
     const [success, setSuccess] = useState("");
     const [uploadingFile, setUploadingFile] = useState<1 | 2 | null>(null);
 
-    const handleFileUpload = async (uploadedFile: File, fileIndex: 1 | 2) => {
+    const handleFileUpload = async (uploadedFile: File, fileIndex: 1 | 2, sheet?: string) => {
         setUploadingFile(fileIndex);
         setError("");
         setSuccess("");
 
         try {
-            const result = await ApiService.getColumnNames(uploadedFile);
+            const result = await ApiService.getColumnNames(uploadedFile, sheet);
 
             const fileData: FileData = {
                 file: uploadedFile,
                 filename: result.filename,
+                fileId: result.file_id,
                 columns: result.column_names,
-                selectedColumn: ""
+                selectedColumn: "",
+                sheetNames: result.sheet_names || [],
+                selectedSheet: result.sheet_name || ""
             };
 
             if (fileIndex === 1) {
@@ -67,6 +73,31 @@ export function MultiFileFuzzyMatching() {
             setError(`Error uploading file ${fileIndex}: ${err.response?.data?.detail || err.message}`);
         } finally {
             setUploadingFile(null);
+        }
+    };
+
+    const handleSheetChange = async (fileIndex: 1 | 2, sheet: string) => {
+        const target = fileIndex === 1 ? file1 : file2;
+        if (!target.fileId) return;
+
+        try {
+            const result = await ApiService.getFileColumns(target.fileId, sheet);
+
+            const updated: FileData = {
+                ...target,
+                columns: result.column_names,
+                selectedColumn: "",
+                sheetNames: result.sheet_names || [],
+                selectedSheet: result.sheet_name || sheet
+            };
+
+            if (fileIndex === 1) {
+                setFile1(updated);
+            } else {
+                setFile2(updated);
+            }
+        } catch (err: any) {
+            setError(`Failed to load sheet "${sheet}": ${err.response?.data?.detail || err.message}`);
         }
     };
 
@@ -92,6 +123,8 @@ export function MultiFileFuzzyMatching() {
                 file_1_column: file1.selectedColumn,
                 file_2_column: file2.selectedColumn,
                 threshold: threshold / 100,
+                file_1_sheet_name: file1.selectedSheet || undefined,
+                file_2_sheet_name: file2.selectedSheet || undefined,
                 delimiter: delimiter,
                 output_type: outputType
             });
@@ -178,6 +211,27 @@ export function MultiFileFuzzyMatching() {
                             )}
                         </div>
 
+                        {file1.sheetNames && file1.sheetNames.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Select Sheet</Label>
+                                <Select
+                                    value={file1.selectedSheet || ""}
+                                    onValueChange={(value) => handleSheetChange(1, value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Choose sheet" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {file1.sheetNames.map((sheet) => (
+                                            <SelectItem key={sheet} value={sheet}>
+                                                {sheet}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         {Object.keys(file1.columns).length > 0 && (
                             <div>
                                 <Label>Select Column for Matching</Label>
@@ -236,6 +290,27 @@ export function MultiFileFuzzyMatching() {
                                 <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
                             )}
                         </div>
+
+                        {file2.sheetNames && file2.sheetNames.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Select Sheet</Label>
+                                <Select
+                                    value={file2.selectedSheet || ""}
+                                    onValueChange={(value) => handleSheetChange(2, value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Choose sheet" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {file2.sheetNames.map((sheet) => (
+                                            <SelectItem key={sheet} value={sheet}>
+                                                {sheet}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         {Object.keys(file2.columns).length > 0 && (
                             <div>
@@ -322,7 +397,15 @@ export function MultiFileFuzzyMatching() {
                     <div className="flex gap-4 pt-4">
                         <Button
                             onClick={performFuzzyMatching}
-                            disabled={loading || !file1.file || !file2.file || !file1.selectedColumn || !file2.selectedColumn}
+                            disabled={
+                                loading ||
+                                !file1.file ||
+                                !file2.file ||
+                                !file1.selectedColumn ||
+                                !file2.selectedColumn ||
+                                (file1.sheetNames?.length && !file1.selectedSheet) ||
+                                (file2.sheetNames?.length && !file2.selectedSheet)
+                            }
                             className="flex-1"
                         >
                             {loading ? "Processing..." : "Find Matches"}

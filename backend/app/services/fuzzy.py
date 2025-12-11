@@ -2,7 +2,7 @@ import pandas as pd
 from string_grouper import match_strings
 import time
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from pydantic import BaseModel
 from ..models import User, UserFile, FuzzyJob
@@ -17,6 +17,8 @@ class FuzzyLookupRequest(BaseModel):
     threshold: float
     delimiter: str = ","
     output_type: str = "csv"
+    file_1_sheet_name: Optional[str] = None
+    file_2_sheet_name: Optional[str] = None
 
 
 class SingleFileFuzzyRequest(BaseModel):
@@ -24,21 +26,38 @@ class SingleFileFuzzyRequest(BaseModel):
     column_1: str
     column_2: str
     threshold: float
+    sheet_name: Optional[str] = None
 
 
 class ColumnNamesResponse(BaseModel):
     filename: str
     column_names: Dict[str, str]
+    file_id: int
+    sheet_names: Optional[List[str]] = None
+    sheet_name: Optional[str] = None
 
 
 class OutputDataframe:
-    def __init__(self, input_file: str):
+    def __init__(self, input_file: str, sheet_name: Optional[str] = None):
         extension = Path(input_file).suffix.lower()
         if extension in [".csv", ".xlsx", ".xls"]:
             self.input_file = input_file
             self.extension = extension
+            self.sheet_name = sheet_name
         else:
             raise ValueError("Incorrect File Type. Supported types: csv, xlsx, xls")
+
+    def list_sheets(self) -> Tuple[Optional[List[str]], Optional[str]]:
+        if self.extension == ".csv":
+            return None, None
+
+        try:
+            excel_file = pd.ExcelFile(self.input_file)
+            sheets = excel_file.sheet_names
+            selected = self.sheet_name if self.sheet_name in sheets else (sheets[0] if sheets else None)
+            return sheets, selected
+        except Exception as e:
+            raise ValueError(f"Could not read Excel sheets: {str(e)}")
 
     def convert_to_dataframe(self) -> pd.DataFrame:
         if self.extension == ".csv":
@@ -66,14 +85,22 @@ class OutputDataframe:
         elif self.extension == ".xlsx":
             # Use openpyxl engine for .xlsx files (Excel 2007+)
             try:
-                return pd.read_excel(self.input_file, engine="openpyxl", sheet_name=0)
+                return pd.read_excel(
+                    self.input_file,
+                    engine="openpyxl",
+                    sheet_name=self.sheet_name or 0,
+                )
             except Exception as e:
                 raise ValueError(f"Could not read XLSX file. Error: {str(e)}")
-        
+
         elif self.extension == ".xls":
             # Use xlrd engine for .xls files (Excel 97-2003)
             try:
-                return pd.read_excel(self.input_file, engine="xlrd", sheet_name=0)
+                return pd.read_excel(
+                    self.input_file,
+                    engine="xlrd",
+                    sheet_name=self.sheet_name or 0,
+                )
             except Exception as e:
                 raise ValueError(f"Could not read XLS file. Please ensure xlrd is installed. Error: {str(e)}")
 
@@ -102,9 +129,9 @@ class FileProcessingHandler:
 
 class FuzzyLookupHelper:
     @staticmethod
-    def fuzzy_lookup_preprocess(file_path: str, column_name: str) -> pd.DataFrame:
+    def fuzzy_lookup_preprocess(file_path: str, column_name: str, sheet_name: Optional[str] = None) -> pd.DataFrame:
         try:
-            output_df = OutputDataframe(file_path)
+            output_df = OutputDataframe(file_path, sheet_name)
             df = output_df.convert_to_dataframe()
 
             df = df.dropna(subset=[column_name])
@@ -162,10 +189,14 @@ class FuzzyService:
         self.download_dir = Path("data/downloads")
         self.download_dir.mkdir(exist_ok=True)
 
-    def get_column_names(self, file_path: str) -> Dict[str, str]:
-        output_df = OutputDataframe(file_path)
+    def get_column_names(self, file_path: str, sheet_name: Optional[str] = None):
+        output_df = OutputDataframe(file_path, sheet_name)
+        sheet_names, resolved_sheet = output_df.list_sheets()
+        if resolved_sheet is not None:
+            output_df.sheet_name = resolved_sheet
         df = output_df.convert_to_dataframe()
-        return {column_name: column_name for column_name in df.columns}
+        column_names = {column_name: column_name for column_name in df.columns}
+        return column_names, sheet_names, resolved_sheet
 
     def process_single_file_fuzzy_lookup(self, request: SingleFileFuzzyRequest, user: User, db) -> str:
         try:
@@ -191,7 +222,7 @@ class FuzzyService:
             db.add(job)
             db.flush()
 
-            output_df = OutputDataframe(user_file.file_path)
+            output_df = OutputDataframe(user_file.file_path, request.sheet_name)
             df = output_df.convert_to_dataframe()
 
             file_processor = FileProcessingHandler(df, request.threshold)
@@ -260,8 +291,12 @@ class FuzzyService:
             db.add(job)
             db.flush()
 
-            df1_processed = FuzzyLookupHelper.fuzzy_lookup_preprocess(user_file_1.file_path, request.file_1_column)
-            df2_processed = FuzzyLookupHelper.fuzzy_lookup_preprocess(user_file_2.file_path, request.file_2_column)
+            df1_processed = FuzzyLookupHelper.fuzzy_lookup_preprocess(
+                user_file_1.file_path, request.file_1_column, request.file_1_sheet_name
+            )
+            df2_processed = FuzzyLookupHelper.fuzzy_lookup_preprocess(
+                user_file_2.file_path, request.file_2_column, request.file_2_sheet_name
+            )
 
             matches = FuzzyLookupHelper.fuzzylookup_main(
                 df1_processed, df2_processed, request.file_1_column, request.file_2_column, request.threshold

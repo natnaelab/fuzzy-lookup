@@ -136,6 +136,14 @@ export interface QueryResponse {
     results: any[];
 }
 
+export interface ColumnNamesResult {
+    filename: string;
+    column_names: Record<string, string>;
+    file_id: number;
+    sheet_names?: string[] | null;
+    sheet_name?: string | null;
+}
+
 // Token management
 class TokenManager {
     private static TOKEN_KEY = 'auth_token';
@@ -245,8 +253,15 @@ export class ApiService {
         await api.delete(`/files/${fileId}`);
     }
 
-    static async getFileColumns(fileId: number): Promise<{ column_names: Record<string, string> }> {
-        const response = await api.get(`/files/${fileId}/columns`);
+    static async getFileColumns(fileId: number, sheetName?: string): Promise<{
+        column_names: Record<string, string>;
+        sheet_names?: string[] | null;
+        sheet_name?: string | null;
+        file_id?: number;
+        original_filename?: string;
+    }> {
+        const query = sheetName ? `?sheet_name=${encodeURIComponent(sheetName)}` : "";
+        const response = await api.get(`/files/${fileId}/columns${query}`);
         return response.data;
     }
 
@@ -255,9 +270,12 @@ export class ApiService {
         return response.data;
     }
 
-    static async getColumnNames(file: File): Promise<{ filename: string, column_names: Record<string, string> }> {
+    static async getColumnNames(file: File, sheetName?: string): Promise<ColumnNamesResult> {
         const formData = new FormData();
         formData.append('file', file);
+        if (sheetName) {
+            formData.append('sheet_name', sheetName);
+        }
 
         const response = await api.post('/api/column_names', formData, {
             headers: {
@@ -272,6 +290,7 @@ export class ApiService {
         column_1: string;
         column_2: string;
         threshold: number;
+        sheet_name?: string;
     }): Promise<Blob> {
         const response = await api.post('/api/lookup_single_file', request, {
             responseType: 'blob',
@@ -287,6 +306,8 @@ export class ApiService {
         threshold: number;
         delimiter?: string;
         output_type?: string;
+        file_1_sheet_name?: string;
+        file_2_sheet_name?: string;
     }): Promise<Blob> {
         const response = await api.post('/api/lookup_multi_file', request, {
             responseType: 'blob',
@@ -333,13 +354,17 @@ export class ApiService {
         file: File,
         columnName: string,
         threshold: number,
-        outputType: string = 'csv'
+        outputType: string = 'csv',
+        sheetName?: string
     ): Promise<Blob> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('column_name', columnName);
         formData.append('threshold', threshold.toString());
         formData.append('output_type', outputType);
+        if (sheetName) {
+            formData.append('sheet_name', sheetName);
+        }
 
         const response = await api.post('/api/find_duplicates', formData, {
             headers: {
