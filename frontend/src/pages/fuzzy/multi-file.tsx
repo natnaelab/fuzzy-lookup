@@ -403,8 +403,8 @@ export function MultiFileFuzzyMatching() {
                                 !file2.file ||
                                 !file1.selectedColumn ||
                                 !file2.selectedColumn ||
-                                (file1.sheetNames?.length && !file1.selectedSheet) ||
-                                (file2.sheetNames?.length && !file2.selectedSheet)
+                                ((file1.sheetNames?.length ?? 0) > 0 && !file1.selectedSheet) ||
+                                ((file2.sheetNames?.length ?? 0) > 0 && !file2.selectedSheet)
                             }
                             className="flex-1"
                         >
