@@ -313,13 +313,92 @@ export function APIConfigurationPage() {
                                                         </DialogDescription>
                                                     </DialogHeader>
                                                     {apiDocs && selectedConfigForDocs === config.id && (
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <h4 className="font-semibold mb-2">Authentication</h4>
-                                                                <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
+                                                        <div className="space-y-6 text-sm">
+                                                            <section className="space-y-2">
+                                                                <h4 className="font-semibold">Step 1: Authenticate</h4>
+                                                                <p>
+                                                                    Use your account email and password to request a{" "}
+                                                                    {apiDocs.authentication?.type || "JWT"} token. Keep the
+                                                                    returned <code>access_token</code> handy for every API call.
+                                                                </p>
+                                                                <div className="bg-muted p-3 rounded text-xs space-y-2">
+                                                                    <div className="font-semibold">
+                                                                        {apiDocs.authentication?.example?.request?.method || "POST"}{" "}
+                                                                        {apiDocs.authentication?.login_endpoint}
+                                                                    </div>
+                                                                    {apiDocs.authentication?.example?.request?.body && (
+                                                                        <div>
+                                                                            <div className="uppercase tracking-wide text-[10px] text-muted-foreground">
+                                                                                Request body
+                                                                            </div>
+                                                                            <pre className="mt-1 bg-background p-2 rounded border text-[11px] overflow-x-auto">
+                                                                                {JSON.stringify(apiDocs.authentication.example.request.body, null, 2)}
+                                                                            </pre>
+                                                                        </div>
+                                                                    )}
+                                                                    {apiDocs.authentication?.example?.response && (
+                                                                        <div>
+                                                                            <div className="uppercase tracking-wide text-[10px] text-muted-foreground">
+                                                                                Sample response
+                                                                            </div>
+                                                                            <pre className="mt-1 bg-background p-2 rounded border text-[11px] overflow-x-auto">
+                                                                                {JSON.stringify(apiDocs.authentication.example.response, null, 2)}
+                                                                            </pre>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </section>
+
+                                                            <section className="space-y-2">
+                                                                <h4 className="font-semibold">Step 2: Query your dataset</h4>
+                                                                <p>
+                                                                    Call your configuration endpoint with the search term. Add the token from Step 1 as a
+                                                                    <code>Bearer</code> header.
+                                                                </p>
+                                                                <div className="bg-muted p-3 rounded text-xs space-y-2">
+                                                                    <div className="font-semibold">
+                                                                        {apiDocs.query_endpoint?.method || "POST"}{" "}
+                                                                        {apiDocs.query_endpoint?.url}
+                                                                    </div>
+                                                                    {apiDocs.query_endpoint?.headers && (
+                                                                        <div>
+                                                                            <div className="uppercase tracking-wide text-[10px] text-muted-foreground">
+                                                                                Headers
+                                                                            </div>
+                                                                            <pre className="mt-1 bg-background p-2 rounded border text-[11px] overflow-x-auto">
+                                                                                {JSON.stringify(apiDocs.query_endpoint.headers, null, 2)}
+                                                                            </pre>
+                                                                        </div>
+                                                                    )}
+                                                                    {apiDocs.query_endpoint?.body && (
+                                                                        <div>
+                                                                            <div className="uppercase tracking-wide text-[10px] text-muted-foreground">
+                                                                                Request body
+                                                                            </div>
+                                                                            <pre className="mt-1 bg-background p-2 rounded border text-[11px] overflow-x-auto">
+                                                                                {JSON.stringify(apiDocs.query_endpoint.body, null, 2)}
+                                                                            </pre>
+                                                                        </div>
+                                                                    )}
+                                                                    {apiDocs.query_endpoint?.example_response && (
+                                                                        <div>
+                                                                            <div className="uppercase tracking-wide text-[10px] text-muted-foreground">
+                                                                                Sample response
+                                                                            </div>
+                                                                            <pre className="mt-1 bg-background p-2 rounded border text-[11px] overflow-x-auto">
+                                                                                {JSON.stringify(apiDocs.query_endpoint.example_response, null, 2)}
+                                                                            </pre>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </section>
+
+                                                            <section className="space-y-2">
+                                                                <h4 className="font-semibold">cURL example</h4>
+                                                                <pre className="bg-muted p-3 rounded text-xs whitespace-pre-wrap">
                                                                     {apiDocs.curl_example}
                                                                 </pre>
-                                                            </div>
+                                                            </section>
                                                         </div>
                                                     )}
                                                 </DialogContent>
