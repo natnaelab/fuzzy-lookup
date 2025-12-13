@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from .config import settings
 from .database import engine
 from . import models
-from .routes import auth, fuzzy, licenses, files, api_config, admin_plans
+from .routes import auth, fuzzy, licenses, files, api_config
 
 
 @asynccontextmanager
@@ -31,7 +31,6 @@ def create_app() -> FastAPI:
     app.include_router(licenses.router, prefix="/license", tags=["License Management"])
     app.include_router(files.router, prefix="/files", tags=["File Management"])
     app.include_router(api_config.router, prefix="/api/configurations", tags=["API Configuration"])
-    app.include_router(admin_plans.router, tags=["Plan Administration"])
 
     @app.get("/health")
     async def health_check():

@@ -1,4 +1,4 @@
-import { Bell, CircleUser, Package2, Settings } from "lucide-react";
+import { Bell, CircleUser, Package2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SIDEBAR_MENU_ITEMS } from "@/constants/dashboard";
 import { useAuth } from "@/context/AuthContext";
-import { isPlanAdmin } from "@/utils/planAdmin";
 
 const AppSidebar: React.FC = () => {
   const { user, logout } = useAuth();
-  const isAdmin = isPlanAdmin(user?.email);
 
   const handleLogout = () => {
     logout();
@@ -50,16 +48,6 @@ const AppSidebar: React.FC = () => {
                 {link.label}
               </Link>
             ))}
-            {isAdmin && (
-              <Link
-                key="plan-settings"
-                to="/admin/plans"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Settings className="h-4 w-4" />
-                Plan Settings
-              </Link>
-            )}
           </nav>
         </div>
         <div className="mt-auto">

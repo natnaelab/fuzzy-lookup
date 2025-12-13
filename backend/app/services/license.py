@@ -10,9 +10,9 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..core.subscriptions import (
     DEFAULT_PLAN_ID,
+    PLAN_BY_PRODUCT,
+    SUBSCRIPTION_PLANS,
     SubscriptionPlan,
-    get_plan_by_product_map,
-    get_subscription_plans,
 )
 from ..models import User
 
@@ -106,18 +106,8 @@ class LicenseService:
         self.client = client or self._create_client()
         self.collection_name = settings.SUBSCRIPTION_COLLECTION
 
-        self._update_doc_ids()
-
-    def _create_client(self) -> firestore.Client:
-        try:
-            return firestore.Client()
-        except Exception as exc:
-            raise RuntimeError("Failed to create Firestore client") from exc
-
-    def _update_doc_ids(self):
         configured_ids = settings.SUBSCRIPTION_DOC_IDS or []
-        plans = get_subscription_plans()
-        plan_ids = {plan.doc_id for plan in plans.values()}
+        plan_ids = {plan.doc_id for plan in SUBSCRIPTION_PLANS.values()}
 
         doc_ids: List[str] = []
         for doc_id in configured_ids + list(plan_ids):
@@ -127,13 +117,15 @@ class LicenseService:
         self.doc_ids = doc_ids or ["Fuzzycloud"]
         self.default_doc_id = self.doc_ids[0]
 
+    def _create_client(self) -> firestore.Client:
+        try:
+            return firestore.Client()
+        except Exception as exc:
+            raise RuntimeError("Failed to create Firestore client") from exc
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-
-    def refresh_plan_cache(self):
-        get_subscription_plans(force_reload=True)
-        self._update_doc_ids()
 
     def get_user_active_license(self, user: User, db=None) -> Optional[SubscriptionRecord]:
         email = user.email.lower()
@@ -201,7 +193,7 @@ class LicenseService:
 
     def get_license_types(self) -> Dict[str, Any]:
         plans = []
-        for plan in get_subscription_plans().values():
+        for plan in SUBSCRIPTION_PLANS.values():
             plans.append(
                 {
                     "plan_id": plan.plan_id,
@@ -238,16 +230,12 @@ class LicenseService:
         return record
 
     def _resolve_plan(self, identifier: str) -> SubscriptionPlan:
-        plans = get_subscription_plans()
-        if identifier in plans:
-            return plans[identifier]
-
-        product_map = get_plan_by_product_map()
-        if identifier in product_map:
-            return product_map[identifier]
-
+        if identifier in SUBSCRIPTION_PLANS:
+            return SUBSCRIPTION_PLANS[identifier]
+        if identifier in PLAN_BY_PRODUCT:
+            return PLAN_BY_PRODUCT[identifier]
         # Fall back to default plan
-        return plans.get(DEFAULT_PLAN_ID) or list(plans.values())[0]
+        return SUBSCRIPTION_PLANS[DEFAULT_PLAN_ID]
 
     def _collection(self):
         return self.client.collection(self.collection_name)
