@@ -28,6 +28,9 @@ class Settings:
     DATA_DIR: Path = Path("data")
     UPLOADS_DIR: Path = DATA_DIR / "uploads"
     DOWNLOADS_DIR: Path = DATA_DIR / "downloads"
+    PLAN_CONFIG_PATH: Path = Path(
+        os.getenv("PLAN_CONFIG_PATH", str(DATA_DIR / "subscription_plans.json"))
+    )
     
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -38,11 +41,17 @@ class Settings:
         for item in os.getenv("SUBSCRIPTION_DOC_IDS", "Fuzzycloud").split(",")
         if item.strip()
     ]
+    PLAN_ADMIN_EMAILS: List[str] = [
+        item.strip().lower()
+        for item in os.getenv("PLAN_ADMIN_EMAILS", "").split(",")
+        if item.strip()
+    ]
     
     def create_directories(self):
         self.DATA_DIR.mkdir(exist_ok=True)
         self.UPLOADS_DIR.mkdir(exist_ok=True)
         self.DOWNLOADS_DIR.mkdir(exist_ok=True)
+        self.PLAN_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 settings = Settings()

@@ -70,6 +70,21 @@ export interface LicenseInfo {
     paypal_link?: string | null;
 }
 
+export interface AdminPlan {
+    plan_id: string;
+    product_name: string;
+    display_name: string;
+    max_conversions: number | null;
+    max_file_size_mb: number;
+    default_duration_days: number;
+    paypal_link?: string | null;
+    doc_id?: string | null;
+}
+
+export type AdminPlanCreate = AdminPlan;
+
+export type AdminPlanUpdate = Partial<Omit<AdminPlan, "plan_id">>;
+
 export interface UserFile {
     id: number;
     original_filename: string;
@@ -403,6 +418,26 @@ export class ApiService {
     static async getLicenseUsage(): Promise<any> {
         const response = await api.get('/license/usage');
         return response.data;
+    }
+
+    // Admin plan management
+    static async getAdminPlans(): Promise<AdminPlan[]> {
+        const response = await api.get<AdminPlan[]>('/admin/plans');
+        return response.data;
+    }
+
+    static async createAdminPlan(data: AdminPlanCreate): Promise<AdminPlan> {
+        const response = await api.post<AdminPlan>('/admin/plans', data);
+        return response.data;
+    }
+
+    static async updateAdminPlan(planId: string, data: AdminPlanUpdate): Promise<AdminPlan> {
+        const response = await api.put<AdminPlan>(`/admin/plans/${planId}`, data);
+        return response.data;
+    }
+
+    static async deleteAdminPlan(planId: string): Promise<void> {
+        await api.delete(`/admin/plans/${planId}`);
     }
 
     // API Configuration methods

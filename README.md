@@ -18,6 +18,8 @@ ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 GOOGLE_APPLICATION_CREDENTIALS=/app/creds/serviceAccountKey.json
 SUBSCRIPTION_COLLECTION=payments
 SUBSCRIPTION_DOC_IDS=Fuzzycloud
+PLAN_ADMIN_EMAILS=client@example.com
+PLAN_CONFIG_PATH=data/subscription_plans.json
 ```
 3) Add your Firestore service account to `backend/serviceAccountKey.json`.  
 4) `docker-compose up --build` from the repo root. Backend will listen on `:8000`, frontend on `:3000`.
@@ -34,6 +36,7 @@ Data storage: uploads/downloads live under `backend/data/` (mounted in the backe
 - **Query DataFrame**: `POST /api/query_dataframe` with file upload, `query_column`, `search_term`, optional `sheet_name`.
 - **Job history/downloads**: `GET /api/jobs` and `GET /api/download/{job_id}`.
 - **API configurations**: `POST /api/configurations/` to save a dataset+column for programmatic querying, then `POST /api/configurations/{id}/query`. Docs helper at `/api/configurations/{id}/docs` returns example payloads (JWT required).
+- **Plan admin UI**: `/admin/plans` (frontend) calls the new `/admin/plans` API. Access is restricted by `PLAN_ADMIN_EMAILS`; mirror those emails in `VITE_PLAN_ADMIN_EMAILS` on the frontend so the navigation link appears. Edits update `backend/data/subscription_plans.json` so plan changes are applied without redeploying.
 
 ## Multi-sheet usage
 - Column listing endpoints now return available `sheet_names` for Excel files.

@@ -1,0 +1,32 @@
+[
+  {
+    "plan_id": "free",
+    "product_name": "free",
+    "display_name": "Free Plan",
+    "max_conversions": 10,
+    "max_file_size_mb": 2,
+    "default_duration_days": 365,
+    "paypal_link": null,
+    "doc_id": "Fuzzycloud"
+  },
+  {
+    "plan_id": "basic",
+    "product_name": "Fuzzycloud-basic-plan",
+    "display_name": "Fuzzycloud Basic Plan",
+    "max_conversions": 50,
+    "max_file_size_mb": 10,
+    "default_duration_days": 30,
+    "paypal_link": "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-0KB98147CY755271SNDYPGNQ",
+    "doc_id": "Fuzzycloud"
+  },
+  {
+    "plan_id": "standard",
+    "product_name": "Fuzzycloud-standard-plan",
+    "display_name": "Fuzzycloud Standard Plan",
+    "max_conversions": null,
+    "max_file_size_mb": 50,
+    "default_duration_days": 30,
+    "paypal_link": "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-88A51664YJ336081YNDSSZ4I",
+    "doc_id": "Fuzzycloud"
+  }
+]

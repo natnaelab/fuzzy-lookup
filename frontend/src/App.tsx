@@ -7,6 +7,7 @@ import { FuzzyMatching } from "./pages/fuzzy";
 import { SubscriptionPage } from "./pages/subscription";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { PlanSettingsPage } from "./pages/admin/plan-settings";
 
 function App() {
   return (
@@ -29,6 +30,11 @@ function App() {
           <Route path="/subscription" element={
             <ProtectedRoute>
               <SubscriptionPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/plans" element={
+            <ProtectedRoute>
+              <PlanSettingsPage />
             </ProtectedRoute>
           } />
           {/* Catch-all route */}
