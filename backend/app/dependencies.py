@@ -32,7 +32,7 @@ def get_subscription_plan_service() -> SubscriptionPlanService:
 
 @lru_cache()
 def get_license_service() -> LicenseService:
-    return LicenseService(get_subscription_plan_service())
+    return LicenseService(plan_service=get_subscription_plan_service())
 
 
 @lru_cache()
