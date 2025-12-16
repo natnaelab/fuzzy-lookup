@@ -14,6 +14,7 @@ class SubscriptionPlan:
     paypal_link: Optional[str] = None
     price_usd: float = 0.0
     doc_id: str = "Fuzzycloud"
+    is_active: bool = True
 
 
 SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
@@ -27,6 +28,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         paypal_link=None,
         price_usd=0.0,
         doc_id="Fuzzycloud",
+        is_active=True,
     ),
     "basic": SubscriptionPlan(
         plan_id="basic",
@@ -38,6 +40,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         paypal_link="https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-0KB98147CY755271SNDYPGNQ",
         price_usd=70.0,
         doc_id="Fuzzycloud",
+        is_active=True,
     ),
     "standard": SubscriptionPlan(
         plan_id="standard",
@@ -49,6 +52,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         paypal_link="https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-88A51664YJ336081YNDSSZ4I",
         price_usd=150.0,
         doc_id="Fuzzycloud",
+        is_active=True,
     ),
 }
 
