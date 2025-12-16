@@ -7,10 +7,10 @@ class SubscriptionPlan:
     plan_id: str
     product_name: str
     display_name: str
-    description: Optional[str] = None
     max_conversions: Optional[int]
     max_file_size_mb: int
     default_duration_days: int
+    description: Optional[str] = None
     paypal_link: Optional[str] = None
     price_usd: float = 0.0
     doc_id: str = "Fuzzycloud"
