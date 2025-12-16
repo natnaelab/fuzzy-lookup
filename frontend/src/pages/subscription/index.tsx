@@ -14,8 +14,9 @@ interface Plan {
     max_conversions: number | null;
     max_file_size_mb: number;
     default_duration_days: number;
-    paypal_link: string | null;
+    paypal_link?: string | null;
     price_usd?: number;
+    description?: string | null;
 }
 
 export function SubscriptionPage() {
