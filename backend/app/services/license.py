@@ -8,13 +8,9 @@ from google.cloud import firestore
 from pydantic import BaseModel, Field
 
 from ..config import settings
-from ..core.subscriptions import (
-    DEFAULT_PLAN_ID,
-    PLAN_BY_PRODUCT,
-    SUBSCRIPTION_PLANS,
-    SubscriptionPlan,
-)
+from ..core.subscriptions import DEFAULT_PLAN_ID, SubscriptionPlan
 from ..models import User
+from .subscription_plan import SubscriptionPlanService
 
 
 class LicenseInfo(BaseModel):
@@ -102,12 +98,19 @@ def _normalize_conversions(value: Any, plan: SubscriptionPlan) -> Optional[int]:
 
 
 class LicenseService:
-    def __init__(self, client: Optional[firestore.Client] = None):
+    def __init__(
+        self,
+        client: Optional[firestore.Client] = None,
+        plan_service: Optional[SubscriptionPlanService] = None,
+    ):
         self.client = client or self._create_client()
+        self.plan_service = plan_service or SubscriptionPlanService()
         self.collection_name = settings.SUBSCRIPTION_COLLECTION
 
         configured_ids = settings.SUBSCRIPTION_DOC_IDS or []
-        plan_ids = {plan.doc_id for plan in SUBSCRIPTION_PLANS.values()}
+        plan_ids = {
+            plan.doc_id for plan in self.plan_service.get_cached_plans(include_inactive=True).values()
+        }
 
         doc_ids: List[str] = []
         for doc_id in configured_ids + list(plan_ids):
@@ -193,16 +196,18 @@ class LicenseService:
 
     def get_license_types(self) -> Dict[str, Any]:
         plans = []
-        for plan in SUBSCRIPTION_PLANS.values():
+        for plan in self.plan_service.get_cached_plans().values():
             plans.append(
                 {
                     "plan_id": plan.plan_id,
                     "product_name": plan.product_name,
                     "display_name": plan.display_name,
+                    "description": plan.description,
                     "max_conversions": plan.max_conversions,
                     "max_file_size_mb": plan.max_file_size_mb,
                     "default_duration_days": plan.default_duration_days,
                     "paypal_link": plan.paypal_link,
+                    "price_usd": plan.price_usd,
                 }
             )
         return {"plans": plans}
@@ -230,12 +235,7 @@ class LicenseService:
         return record
 
     def _resolve_plan(self, identifier: str) -> SubscriptionPlan:
-        if identifier in SUBSCRIPTION_PLANS:
-            return SUBSCRIPTION_PLANS[identifier]
-        if identifier in PLAN_BY_PRODUCT:
-            return PLAN_BY_PRODUCT[identifier]
-        # Fall back to default plan
-        return SUBSCRIPTION_PLANS[DEFAULT_PLAN_ID]
+        return self.plan_service.get_plan(identifier)
 
     def _collection(self):
         return self.client.collection(self.collection_name)

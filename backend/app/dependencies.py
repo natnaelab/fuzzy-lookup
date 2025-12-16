@@ -9,6 +9,8 @@ from .services.auth import AuthService
 from .services.fuzzy import FuzzyService
 from .services.license import LicenseService
 from .services.file import FileService
+from .services.subscription_plan import SubscriptionPlanService
+from .config import settings
 
 security = HTTPBearer()
 
@@ -24,8 +26,13 @@ def get_fuzzy_service() -> FuzzyService:
 
 
 @lru_cache()
+def get_subscription_plan_service() -> SubscriptionPlanService:
+    return SubscriptionPlanService()
+
+
+@lru_cache()
 def get_license_service() -> LicenseService:
-    return LicenseService()
+    return LicenseService(get_subscription_plan_service())
 
 
 @lru_cache()
@@ -47,3 +54,9 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+
+def require_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.email and current_user.email.lower() in settings.get_admin_emails():
+        return current_user
+    raise HTTPException(status_code=403, detail="Admin access required")

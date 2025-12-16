@@ -1,4 +1,4 @@
-import { Bell, CircleUser, Package2 } from "lucide-react";
+import { Bell, CircleUser, Package2, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SIDEBAR_MENU_ITEMS } from "@/constants/dashboard";
 import { useAuth } from "@/context/AuthContext";
+import type { Props as IconProps } from "@/components/icons/types";
+
+const AdminIcon: React.FC<IconProps> = (props) => <Shield {...props} />;
 
 const AppSidebar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -19,6 +22,16 @@ const AppSidebar: React.FC = () => {
   const handleLogout = () => {
     logout();
   };
+
+  const menuItems = [...SIDEBAR_MENU_ITEMS];
+  if (user?.is_admin) {
+    menuItems.push({
+      key: "admin-plans",
+      label: "Plan Manager",
+      href: "/admin/plans",
+      Icon: AdminIcon,
+    });
+  }
 
   return (
     <div className="hidden fixed inset-y-0 border-r w-64 flex-shrink-0 md:block">
@@ -38,7 +51,7 @@ const AppSidebar: React.FC = () => {
         </div>
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {SIDEBAR_MENU_ITEMS.map((link) => (
+            {menuItems.map((link) => (
               <Link
                 key={link.key}
                 to={link.href}

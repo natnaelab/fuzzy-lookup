@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
+from .config import settings
 
 
 class User(Base):
@@ -22,6 +23,12 @@ class User(Base):
     files = relationship("UserFile", back_populates="user", cascade="all, delete-orphan")
     fuzzy_jobs = relationship("FuzzyJob", back_populates="user", cascade="all, delete-orphan")
     api_configurations = relationship("APIConfiguration", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def is_admin(self) -> bool:
+        if not self.email:
+            return False
+        return self.email.lower() in settings.get_admin_emails()
 
 class UserFile(Base):
     __tablename__ = "user_files"
@@ -94,3 +101,22 @@ class APIConfiguration(Base):
     # Relationships
     user = relationship("User", back_populates="api_configurations")
     file = relationship("UserFile")
+
+
+class SubscriptionPlan(Base):
+    __tablename__ = "subscription_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(String, unique=True, nullable=False)
+    product_name = Column(String, unique=True, nullable=False)
+    display_name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    price_usd = Column(Float, default=0.0)
+    max_conversions = Column(Integer, nullable=True)
+    max_file_size_mb = Column(Integer, nullable=False)
+    default_duration_days = Column(Integer, nullable=False)
+    paypal_link = Column(String, nullable=True)
+    doc_id = Column(String, nullable=False, default="Fuzzycloud")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

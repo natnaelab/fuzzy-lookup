@@ -38,6 +38,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_verified: bool
     created_at: datetime
+    is_admin: bool = False
 
     class Config:
         from_attributes = True

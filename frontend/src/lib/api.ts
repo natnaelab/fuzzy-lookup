@@ -38,6 +38,7 @@ export interface User {
     is_active: boolean;
     is_verified: boolean;
     created_at: string;
+    is_admin: boolean;
 }
 
 export interface LoginRequest {
@@ -69,6 +70,31 @@ export interface LicenseInfo {
     is_expired: boolean;
     paypal_link?: string | null;
 }
+
+export interface PublicSubscriptionPlan {
+    plan_id: string;
+    product_name: string;
+    display_name: string;
+    description?: string | null;
+    price_usd: number;
+    max_conversions: number | null;
+    max_file_size_mb: number;
+    default_duration_days: number;
+    paypal_link?: string | null;
+}
+
+export interface AdminSubscriptionPlan extends PublicSubscriptionPlan {
+    id: number;
+    doc_id: string;
+    is_active: boolean;
+}
+
+export interface SubscriptionPlanPayload extends PublicSubscriptionPlan {
+    doc_id: string;
+    is_active: boolean;
+}
+
+export type SubscriptionPlanUpdateRequest = Partial<Omit<SubscriptionPlanPayload, "plan_id">>;
 
 export interface UserFile {
     id: number;
@@ -387,8 +413,8 @@ export class ApiService {
         }
     }
 
-    static async getLicenseTypes(): Promise<any> {
-        const response = await api.get('/license/types');
+    static async getLicenseTypes(): Promise<{ plans: PublicSubscriptionPlan[] }> {
+        const response = await api.get<{ plans: PublicSubscriptionPlan[] }>('/license/types');
         return response.data;
     }
 
@@ -403,6 +429,27 @@ export class ApiService {
     static async getLicenseUsage(): Promise<any> {
         const response = await api.get('/license/usage');
         return response.data;
+    }
+
+    static async getAdminPlans(includeInactive = true): Promise<AdminSubscriptionPlan[]> {
+        const response = await api.get<AdminSubscriptionPlan[]>(
+            `/admin/subscription-plans?include_inactive=${includeInactive}`
+        );
+        return response.data;
+    }
+
+    static async createAdminPlan(payload: SubscriptionPlanPayload): Promise<AdminSubscriptionPlan> {
+        const response = await api.post<AdminSubscriptionPlan>('/admin/subscription-plans', payload);
+        return response.data;
+    }
+
+    static async updateAdminPlan(planId: string, payload: SubscriptionPlanUpdateRequest): Promise<AdminSubscriptionPlan> {
+        const response = await api.put<AdminSubscriptionPlan>(`/admin/subscription-plans/${planId}`, payload);
+        return response.data;
+    }
+
+    static async deleteAdminPlan(planId: string): Promise<void> {
+        await api.delete(`/admin/subscription-plans/${planId}`);
     }
 
     // API Configuration methods

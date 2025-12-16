@@ -38,11 +38,24 @@ class Settings:
         for item in os.getenv("SUBSCRIPTION_DOC_IDS", "Fuzzycloud").split(",")
         if item.strip()
     ]
-    
+    ADMIN_EMAILS: List[str] = [
+        email.strip().lower()
+        for email in os.getenv("ADMIN_EMAILS", "").split(",")
+        if email.strip()
+    ]
+    DEFAULT_ADMIN_EMAILS: List[str] = [
+        "kilelronos@gmail.com",
+        "smallpdfkenya@gmail.com",
+    ]
+
     def create_directories(self):
         self.DATA_DIR.mkdir(exist_ok=True)
         self.UPLOADS_DIR.mkdir(exist_ok=True)
         self.DOWNLOADS_DIR.mkdir(exist_ok=True)
+
+    def get_admin_emails(self) -> List[str]:
+        source = self.ADMIN_EMAILS or self.DEFAULT_ADMIN_EMAILS
+        return [email.lower() for email in source]
 
 
 settings = Settings()

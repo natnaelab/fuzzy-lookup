@@ -7,10 +7,12 @@ class SubscriptionPlan:
     plan_id: str
     product_name: str
     display_name: str
+    description: Optional[str] = None
     max_conversions: Optional[int]
     max_file_size_mb: int
     default_duration_days: int
     paypal_link: Optional[str] = None
+    price_usd: float = 0.0
     doc_id: str = "Fuzzycloud"
 
 
@@ -23,6 +25,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         max_file_size_mb=2,
         default_duration_days=365,
         paypal_link=None,
+        price_usd=0.0,
         doc_id="Fuzzycloud",
     ),
     "basic": SubscriptionPlan(
@@ -33,6 +36,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         max_file_size_mb=10,
         default_duration_days=30,
         paypal_link="https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-0KB98147CY755271SNDYPGNQ",
+        price_usd=70.0,
         doc_id="Fuzzycloud",
     ),
     "standard": SubscriptionPlan(
@@ -43,6 +47,7 @@ SUBSCRIPTION_PLANS: Dict[str, SubscriptionPlan] = {
         max_file_size_mb=50,
         default_duration_days=30,
         paypal_link="https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-88A51664YJ336081YNDSSZ4I",
+        price_usd=150.0,
         doc_id="Fuzzycloud",
     ),
 }

@@ -15,6 +15,7 @@ interface Plan {
     max_file_size_mb: number;
     default_duration_days: number;
     paypal_link: string | null;
+    price_usd?: number;
 }
 
 export function SubscriptionPage() {
@@ -59,13 +60,6 @@ export function SubscriptionPage() {
 
     const isCurrentPlan = (planId: string) => {
         return license?.plan_id === planId;
-    };
-
-    const getPlanPrice = (planId: string) => {
-        if (planId === "free") return "Free";
-        if (planId === "basic") return "$70";
-        if (planId === "standard") return "$150";
-        return "Contact us";
     };
 
     if (loading) {
@@ -143,7 +137,9 @@ export function SubscriptionPage() {
                                         )}
                                     </div>
                                     <CardDescription className="text-2xl font-bold mt-2">
-                                        {getPlanPrice(plan.plan_id)}
+                                        {plan.price_usd && plan.price_usd > 0
+                                            ? `$${plan.price_usd.toFixed(2)}`
+                                            : "Free"}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
