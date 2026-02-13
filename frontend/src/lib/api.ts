@@ -54,6 +54,19 @@ export interface RegisterRequest {
     last_name?: string;
 }
 
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    new_password: string;
+}
+
+export interface MessageResponse {
+    message: string;
+}
+
 export interface TokenResponse {
     access_token: string;
     token_type: string;
@@ -234,6 +247,18 @@ export class ApiService {
 
     static async register(userData: RegisterRequest): Promise<User> {
         const response = await api.post<User>('/auth/register', userData);
+        return response.data;
+    }
+
+    static async forgotPassword(email: string): Promise<MessageResponse> {
+        const payload: ForgotPasswordRequest = { email };
+        const response = await api.post<MessageResponse>('/auth/forgot-password', payload);
+        return response.data;
+    }
+
+    static async resetPassword(token: string, newPassword: string): Promise<MessageResponse> {
+        const payload: ResetPasswordRequest = { token, new_password: newPassword };
+        const response = await api.post<MessageResponse>('/auth/reset-password', payload);
         return response.data;
     }
 

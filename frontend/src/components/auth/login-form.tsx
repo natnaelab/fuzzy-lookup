@@ -76,6 +76,11 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <div className="text-right text-sm">
+              <Link to="/forgot-password" className="underline">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

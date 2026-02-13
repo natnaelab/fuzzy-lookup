@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import User
 from .services.auth import AuthService
+from .services.email import EmailService
 from .services.fuzzy import FuzzyService
 from .services.license import LicenseService
 from .services.file import FileService
@@ -18,6 +19,11 @@ security = HTTPBearer()
 @lru_cache()
 def get_auth_service() -> AuthService:
     return AuthService()
+
+
+@lru_cache()
+def get_email_service() -> EmailService:
+    return EmailService()
 
 
 @lru_cache()

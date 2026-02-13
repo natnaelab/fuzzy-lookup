@@ -14,6 +14,15 @@ FastAPI + React application for fuzzy matching across uploaded datasets with sub
 DATABASE_URL=postgresql+psycopg://fuzzy_user:fuzzy_password@postgres:5432/fuzzy_lookup
 JWT_SECRET_KEY=change-me
 JWT_EXPIRE_MINUTES=1440
+PASSWORD_RESET_TOKEN_EXPIRE_MINUTES=15
+ENVIRONMENT=development
+FRONTEND_BASE_URL=http://localhost:3000
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+SMTP_USE_TLS=true
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 GOOGLE_APPLICATION_CREDENTIALS=/app/creds/serviceAccountKey.json
 SUBSCRIPTION_COLLECTION=payments
@@ -26,6 +35,10 @@ Data storage: uploads/downloads live under `backend/data/` (mounted in the backe
 
 ## Key flows
 - **Auth**: `/auth/register`, `/auth/login` return JWT; frontend stores token and attaches to API calls.
+- **Forgot password**:
+  - `POST /auth/forgot-password` always returns a generic success message.
+  - `POST /auth/reset-password` accepts reset token + new password and updates the password.
+  - In development, if SMTP is not configured, reset links are logged by backend; in non-development environments SMTP must be configured.
 - **Subscriptions**: `/license/types` exposes plan names + PayPal links; `/license/info` returns the user’s active plan/limits.
 - **File upload + columns**: `POST /api/column_names` with a file (and optional `sheet_name`) saves the file for the user and returns `file_id`, `filename`, `sheet_names`, `sheet_name`, and `column_names`.
 - **Sheet-aware columns**: `GET /files/{file_id}/columns?sheet_name=...` returns columns for a specific sheet (Excel). CSVs ignore `sheet_name`.
