@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, status
 from google.cloud import firestore
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from ..config import settings
 from ..core.subscriptions import DEFAULT_PLAN_ID, SubscriptionPlan
@@ -22,14 +22,6 @@ class LicenseInfo(BaseModel):
     expiry: Optional[datetime]
     is_expired: bool
     paypal_link: Optional[str]
-
-
-class LicenseUpgrade(BaseModel):
-    plan_id: str = Field(alias="license_type")
-    duration_months: int = 12
-
-    class Config:
-        populate_by_name = True
 
 
 class SubscriptionRecord:
@@ -170,23 +162,6 @@ class LicenseService:
             return
 
         self._decrement_conversion(record)
-
-    def upgrade_license(self, user: User, license_upgrade: LicenseUpgrade, db) -> LicenseInfo:
-        plan = self._resolve_plan(license_upgrade.plan_id)
-
-        duration_days = license_upgrade.duration_months * 30
-        expiry = datetime.utcnow() + timedelta(days=duration_days)
-        conversions = plan.max_conversions
-
-        record = self._write_subscription(
-            email=user.email.lower(),
-            plan=plan,
-            expiry=expiry,
-            conversions=conversions,
-            doc_id=plan.doc_id,
-        )
-
-        return self._record_to_info(record)
 
     def get_license_info(self, user: User, db) -> Optional[LicenseInfo]:
         record = self.get_user_active_license(user, db)

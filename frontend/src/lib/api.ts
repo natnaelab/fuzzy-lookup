@@ -443,14 +443,6 @@ export class ApiService {
         return response.data;
     }
 
-    static async upgradeLicense(planId: string, durationMonths = 12): Promise<LicenseInfo> {
-        const response = await api.post<LicenseInfo>('/license/upgrade', {
-            plan_id: planId,
-            duration_months: durationMonths,
-        });
-        return response.data;
-    }
-
     static async getLicenseUsage(): Promise<any> {
         const response = await api.get('/license/usage');
         return response.data;

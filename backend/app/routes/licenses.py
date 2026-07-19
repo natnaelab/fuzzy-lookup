@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
-from app.services.license import LicenseService, LicenseInfo, LicenseUpgrade
+from app.services.license import LicenseService, LicenseInfo
 from app.dependencies import get_current_user, get_license_service
 from typing import Dict, Any, Optional
 
@@ -21,16 +21,6 @@ async def get_license_info(
 @router.get("/types")
 async def get_license_types(license_svc: LicenseService = Depends(get_license_service)) -> Dict[str, Any]:
     return license_svc.get_license_types()
-
-
-@router.post("/upgrade", response_model=LicenseInfo)
-async def upgrade_license(
-    license_upgrade: LicenseUpgrade,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    license_svc: LicenseService = Depends(get_license_service),
-):
-    return license_svc.upgrade_license(current_user, license_upgrade, db)
 
 
 @router.get("/usage")
